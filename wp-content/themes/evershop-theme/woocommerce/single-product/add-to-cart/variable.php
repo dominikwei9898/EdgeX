@@ -6,7 +6,7 @@
  * 移除了不必要的 data-product_variations（因为使用自定义变体选择器）
  * 
  * @package EverShop_Theme
- * @version 1.0.0
+ * @version 9.6.0
  */
 
 defined('ABSPATH') || exit;

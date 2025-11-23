@@ -6,7 +6,7 @@
  * 覆盖 WooCommerce 默认模板
  * 
  * @package EverShop_Theme
- * @version 1.0.0
+ * @version 10.2.0
  */
 
 defined('ABSPATH') || exit;
