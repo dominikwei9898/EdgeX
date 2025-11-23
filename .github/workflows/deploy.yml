@@ -3,8 +3,9 @@ name: Deploy Custom WP Content
 on:
   push:
     branches:
-      - main  
+      - main  # 仅推送到 main 分支时触发部署
     paths:
+      # 监控自定义主题和插件的目录变化
       - 'wp-content/themes/evershop-theme/**'
       - 'wp-content/plugins/media-from-url/**'
       - 'wp-content/plugins/evershop-integration/**'
@@ -16,37 +17,35 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-
+      # 步骤 1: 设置 SSH Key 和 Known Hosts
       - name: Install SSH Key
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-
       - name: Add Known Hosts
         run: ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-
+      # 步骤 2: 定义目标路径变量
       - name: Set Target Directory Variable
         run: echo "TARGET_DIR=/var/www/jaycutlerr.uk/public_html/wp-content" >> $GITHUB_ENV
-
-
+      
+      # 确保这里有一个空行，以避免与上一个 run 块冲突
+      
+      # 步骤 3: 同步自定义主题 (evershop-theme)
       - name: Sync Theme: evershop-theme
         run: |
-          rsync -avz --delete -e "ssh -p 22" \
-            ./wp-content/themes/evershop-theme/ \
-            ubuntu@${{ secrets.EC2_HOST }}:${{ env.TARGET_DIR }}/themes/evershop-theme/
+          # 完整的 rsync 命令写在同一行
+          rsync -avz --delete -e "ssh -p 22" ./wp-content/themes/evershop-theme/ ubuntu@${{ secrets.EC2_HOST }}:${{ env.TARGET_DIR }}/themes/evershop-theme/
 
-
+      # 步骤 4: 同步插件 (media-from-url)
       - name: Sync Plugin: media-from-url
         run: |
-          rsync -avz --delete -e "ssh -p 22" \
-            ./wp-content/plugins/media-from-url/ \
-            ubuntu@${{ secrets.EC2_HOST }}:${{ env.TARGET_DIR }}/plugins/media-from-url/
+          # 完整的 rsync 命令写在同一行
+          rsync -avz --delete -e "ssh -p 22" ./wp-content/plugins/media-from-url/ ubuntu@${{ secrets.EC2_HOST }}:${{ env.TARGET_DIR }}/plugins/media-from-url/
 
-
+      # 步骤 5: 同步插件 (evershop-integration)
       - name: Sync Plugin: evershop-integration
         run: |
-          rsync -avz --delete -e "ssh -p 22" \
-            ./wp-content/plugins/evershop-integration/ \
-            ubuntu@${{ secrets.EC2_HOST }}:${{ env.TARGET_DIR }}/plugins/evershop-integration/
+          # 完整的 rsync 命令写在同一行
+          rsync -avz --delete -e "ssh -p 22" ./wp-content/plugins/evershop-integration/ ubuntu@${{ secrets.EC2_HOST }}:${{ env.TARGET_DIR }}/plugins/evershop-integration/
