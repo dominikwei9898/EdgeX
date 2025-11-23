@@ -1,0 +1,108 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: CAJIPAY\n"
+"POT-Creation-Date: 2021-06-08 09:34+0800\n"
+"PO-Revision-Date: 2021-06-08 09:35+0800\n"
+"Last-Translator: cajipay <support@cajipay.com>\n"
+"Language-Team: CAJIPAY <support@cajipay.com>\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 1.8.7\n"
+"X-Poedit-Basepath: ..\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+"X-Poedit-KeywordsList: __\n"
+"X-Poedit-SearchPath-0: .\n"
+
+#: class-cajipay-wc-payment-gateway.php:38
+msgid "Enable/Disable"
+msgstr "启用/禁用"
+
+#: class-cajipay-wc-payment-gateway.php:40
+msgid "Enable CajiPay Payment"
+msgstr "启用超集支付"
+
+#: class-cajipay-wc-payment-gateway.php:44
+msgid "Title"
+msgstr "标题"
+
+#: class-cajipay-wc-payment-gateway.php:46
+msgid "This controls the title which the user sees during checkout."
+msgstr "支付网关名称，用户结账时显示."
+
+#: class-cajipay-wc-payment-gateway.php:47
+msgid "CajiPay"
+msgstr "超集支付"
+
+#: class-cajipay-wc-payment-gateway.php:51
+msgid "Description"
+msgstr "描述"
+
+#: class-cajipay-wc-payment-gateway.php:53
+msgid "This controls the description which the user sees during checkout."
+msgstr "描述一下支付网关，用户结账时会看到."
+
+#: class-cajipay-wc-payment-gateway.php:54
+msgid ""
+"Pay via CajiPay, if you don't have an CajiPay account, you can also pay "
+"with your debit card or credit card"
+msgstr "通过超集支付，如果没有收款账号，也可以绑定帐号支付"
+
+#: class-cajipay-wc-payment-gateway.php:59
+msgid "Username"
+msgstr "用户名"
+
+#: class-cajipay-wc-payment-gateway.php:61
+msgid ""
+"Please enter the Username,If you don't have one, <a href=\"https://www."
+"cajipay.com\" target=\"_blank\">click here</a> to get."
+msgstr ""
+"请输入用户名，如果没有，<a href=\"https://www.cajipay.com"
+"\" target=\"_blank\">点击这里获取</a>."
+
+#: class-cajipay-wc-payment-gateway.php:65
+msgid "Gateway Url"
+msgstr "网关地址"
+
+#: class-cajipay-wc-payment-gateway.php:67
+msgid ""
+"Please enter the Merchant ID,If you don't have one, <a href=\"https://www."
+"cajipay.com\" target=\"_blank\">click here</a> to get."
+msgstr ""
+"请输入商户账号，如果没有，<a href=\"https://www.cajipay.com\" target="
+"\"_blank\">点击这里获取</a>."
+
+#: class-cajipay-wc-payment-gateway.php:71
+msgid "CajiPay Key"
+msgstr "支付密钥"
+
+#: class-cajipay-wc-payment-gateway.php:73
+msgid ""
+"Please enter your CajiPay Key; this is needed in order to take payment."
+msgstr ""
+"请输入你的支付API 32位密钥。如果没有，<a href=\"https://www.cajipay.com"
+"\" target=\"_blank\">点击这里获取</a>."
+
+#: class-cajipay-wc-payment-gateway.php:78
+msgid "Exchange Rate"
+msgstr "汇率"
+
+#: class-cajipay-wc-payment-gateway.php:81
+msgid ""
+"Please set current currency against Chinese Yuan exchange rate, eg if your "
+"currency is US Dollar, then you should enter 6.19"
+msgstr ""
+
+#: class-cajipay-wc-payment-gateway.php:224
+msgid "Invalid refused amount!"
+msgstr "无效的订单总额!"
+
+#: class-cajipay-wc-payment-gateway.php:264
+msgid "Please scan the QR code with WeChat to finish the payment."
+msgstr "请通过扫描二维码完成支付。"
+
+#: init.php:44
+msgid "Settings"
+msgstr "设置"
