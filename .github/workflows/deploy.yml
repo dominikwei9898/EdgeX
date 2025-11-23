@@ -49,3 +49,9 @@ jobs:
         run: |
           # 完整的 rsync 命令写在同一行
           rsync -avz --delete -e "ssh -p 22" ./wp-content/plugins/evershop-integration/ ubuntu@${{ secrets.EC2_HOST }}:${{ env.TARGET_DIR }}/plugins/evershop-integration/
+      
+      # 步骤 6: 同步插件 (cajipay-payments-for-woocommerce)
+      - name: "Sync Plugin: cajipay-payments-for-woocommerce"
+        run: |
+          # 完整的 rsync 命令写在同一行
+          rsync -avz --delete -e "ssh -p 22" ./wp-content/plugins/cajipay-payments-for-woocommerce/ ubuntu@${{ secrets.EC2_HOST }}:${{ env.TARGET_DIR }}/plugins/cajipay-payments-for-woocommerce/
