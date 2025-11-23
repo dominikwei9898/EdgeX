@@ -290,14 +290,14 @@ function evershop_integration_admin_page() {
                         ⚠️ 检测到 <strong><?php echo $field_migration_status['count']; ?> 个产品</strong>需要迁移字段命名
                     </p>
                     <p style="margin: 5px 0; font-size: 13px; color: #666;">
-                        需要添加 <code>_espf_</code> 前缀：Badge、Subheading 字段
+                        需要添加 <code>_espf_</code> 前缀：Badge、Subheading、Videos、Testimonials 字段
                     </p>
                 <?php else : ?>
                     <p style="color: #46b450; font-weight: 600; margin: 5px 0;">
                         ✅ 所有产品字段已使用标准 <code>_espf_</code> 前缀命名
                     </p>
                     <p style="margin: 5px 0; font-size: 13px; color: #666;">
-                        Badge、Subheading 字段命名符合 EverShop 规范
+                        Badge、Subheading、Videos、Testimonials 字段命名符合 EverShop 规范
                     </p>
                 <?php endif; ?>
             </div>
@@ -371,9 +371,10 @@ function evershop_integration_admin_page() {
                 <?php if ($has_field_migration) : ?>
                 <div style="margin-bottom: 20px;">
                     <h3>字段命名迁移映射表</h3>
-                    <table class="widefat" style="max-width: 600px;">
+                    <table class="widefat" style="max-width: 700px;">
                         <thead>
                             <tr>
+                                <th>字段类别</th>
                                 <th>旧字段名</th>
                                 <th>→</th>
                                 <th>新字段名</th>
@@ -381,6 +382,7 @@ function evershop_integration_admin_page() {
                         </thead>
                         <tbody>
                             <tr>
+                                <td rowspan="3"><strong>Badge 徽章</strong></td>
                                 <td><code>_badge_enabled</code></td>
                                 <td>→</td>
                                 <td><code>_espf_badge_enabled</code></td>
@@ -395,10 +397,33 @@ function evershop_integration_admin_page() {
                                 <td>→</td>
                                 <td><code>_espf_badge_color</code></td>
                             </tr>
-                            <tr>
+                            <tr style="border-top: 2px solid #ddd;">
+                                <td><strong>Subheading 副标题</strong></td>
                                 <td><code>_product_subheading</code></td>
                                 <td>→</td>
                                 <td><code>_espf_subheading</code></td>
+                            </tr>
+                            <tr style="border-top: 2px solid #ddd;">
+                                <td rowspan="2"><strong>Videos 视频</strong></td>
+                                <td><code>_product_videos</code></td>
+                                <td>→</td>
+                                <td><code>_espf_product_videos</code></td>
+                            </tr>
+                            <tr>
+                                <td><code>_videos_title</code></td>
+                                <td>→</td>
+                                <td><code>_espf_videos_title</code></td>
+                            </tr>
+                            <tr style="border-top: 2px solid #ddd;">
+                                <td rowspan="2"><strong>Testimonials 评价</strong></td>
+                                <td><code>_product_testimonials</code></td>
+                                <td>→</td>
+                                <td><code>_espf_product_testimonials</code></td>
+                            </tr>
+                            <tr>
+                                <td><code>_testimonials_title</code></td>
+                                <td>→</td>
+                                <td><code>_espf_testimonials_title</code></td>
                             </tr>
                         </tbody>
                     </table>
@@ -785,7 +810,11 @@ function evershop_check_field_migration_status() {
         '_badge_enabled' => '_espf_badge_enabled',
         '_badge_text' => '_espf_badge_text',
         '_badge_color' => '_espf_badge_color',
-        '_product_subheading' => '_espf_subheading'
+        '_product_subheading' => '_espf_subheading',
+        '_product_videos' => '_espf_product_videos',
+        '_videos_title' => '_espf_videos_title',
+        '_product_testimonials' => '_espf_product_testimonials',
+        '_testimonials_title' => '_espf_testimonials_title'
     ];
     
     $needs_migration_products = [];
@@ -828,7 +857,11 @@ function evershop_migrate_badge_subheading_fields() {
         '_badge_enabled' => '_espf_badge_enabled',
         '_badge_text' => '_espf_badge_text',
         '_badge_color' => '_espf_badge_color',
-        '_product_subheading' => '_espf_subheading'
+        '_product_subheading' => '_espf_subheading',
+        '_product_videos' => '_espf_product_videos',
+        '_videos_title' => '_espf_videos_title',
+        '_product_testimonials' => '_espf_product_testimonials',
+        '_testimonials_title' => '_espf_testimonials_title'
     ];
     
     $migrated_count = 0;
