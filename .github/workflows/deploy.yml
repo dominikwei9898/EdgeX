@@ -22,6 +22,7 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+
       - name: Add Known Hosts
         run: ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
@@ -29,17 +30,20 @@ jobs:
       - name: Set Target Directory Variable
         run: echo "TARGET_DIR=/var/www/jaycutlerr.uk/public_html/wp-content" >> $GITHUB_ENV
 
+
       - name: Sync Theme: evershop-theme
         run: |
           rsync -avz --delete -e "ssh -p 22" \
             ./wp-content/themes/evershop-theme/ \
             ubuntu@${{ secrets.EC2_HOST }}:${{ env.TARGET_DIR }}/themes/evershop-theme/
 
+
       - name: Sync Plugin: media-from-url
         run: |
           rsync -avz --delete -e "ssh -p 22" \
             ./wp-content/plugins/media-from-url/ \
             ubuntu@${{ secrets.EC2_HOST }}:${{ env.TARGET_DIR }}/plugins/media-from-url/
+
 
       - name: Sync Plugin: evershop-integration
         run: |
