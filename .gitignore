@@ -1,0 +1,25 @@
+# 忽略所有内容
+/*
+
+# 但保留这三个文件夹
+!wp-content/
+wp-content/*
+!wp-content/plugins/
+wp-content/plugins/*
+!wp-content/plugins/evershop-integration/
+!wp-content/plugins/media-from-url/
+!wp-content/themes/
+wp-content/themes/*
+!wp-content/themes/evershop-theme/
+
+# 保留 .gitignore 本身
+!.gitignore
+
+# 忽略日志文件
+*.log
+
+# 忽略 node_modules
+node_modules/
+
+# 忽略 DS_Store
+.DS_Store

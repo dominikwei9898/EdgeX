@@ -1,0 +1,40 @@
+/**
+ * Product Rating Display Styles
+ * 对应 EverShop 的评分显示（如 "5.0 · 8 reviews"）
+ */
+
+.product-rating {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem; /* 8px */
+    font-size: 0.9375rem; /* 15px */
+    color: #333333;
+}
+
+.rating-score {
+    font-weight: 600;
+    color: #000000;
+    font-size: 1rem; /* 16px */
+}
+
+.rating-separator {
+    color: #999999;
+    font-weight: 400;
+}
+
+.rating-count {
+    color: #666666;
+    font-weight: 400;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .product-rating {
+        font-size: 0.875rem; /* 14px */
+    }
+    
+    .rating-score {
+        font-size: 0.9375rem; /* 15px */
+    }
+}
+

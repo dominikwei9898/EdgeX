@@ -1,0 +1,66 @@
+/**
+ * Custom Add to Cart Compatibility CSS
+ * 
+ * 确保自定义组件与旧样式的兼容性
+ * 
+ * @package EverShop_Theme
+ * @version 1.0.0
+ */
+
+/* 覆盖旧的 form-cart-optimize.css 样式 */
+.single-product form.cart.evershop-cart-form,
+.single-product form.cart.variations_form {
+    display: block !important;
+    flex-wrap: initial !important;
+    gap: initial !important;
+    align-items: initial !important;
+}
+
+/* 重置旧的数量选择器样式 */
+.single-product .evershop-quantity-selector .quantity {
+    width: 100% !important;
+    margin: 0 !important;
+    display: block !important;
+}
+
+.single-product .evershop-quantity-selector .quantity .qty {
+    /* 使用新的样式，不受旧CSS影响 */
+    height: auto !important;
+    border-radius: 0 !important;
+    border: none !important;
+    padding: 0 8px !important;
+}
+
+/* 确保新按钮样式不受旧样式影响 */
+.single-product .evershop-add-to-cart-button.single_add_to_cart_button {
+    flex-grow: initial !important;
+    height: auto !important;
+    border-radius: 8px !important;
+    padding: 0 24px !important;
+}
+
+/* 隐藏默认的WooCommerce数量选择器（如果还存在） */
+.single-product .woocommerce-variation-add-to-cart > .quantity:not(.evershop-quantity-selector .quantity) {
+    display: none !important;
+}
+
+/* 确保自定义组件在变体商品中正确显示 */
+.single-product .evershop-variation-add-to-cart {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    min-height: 52px !important;
+}
+
+/* 确保变体表单容器正确显示 */
+.single-product .single_variation_wrap {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* 确保所有必需的容器都显示 */
+.single-product form.variations_form .single_variation_wrap .woocommerce-variation-add-to-cart {
+    display: block !important;
+}
+

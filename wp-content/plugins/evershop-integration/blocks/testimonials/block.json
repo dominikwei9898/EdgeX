@@ -1,0 +1,47 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "evershop/testimonials",
+  "title": "Customer Testimonials",
+  "category": "evershop",
+  "icon": "format-quote",
+  "description": "Display customer reviews and testimonials in a carousel slider with ratings.",
+  "keywords": ["testimonials", "reviews", "carousel", "ratings", "evershop"],
+  "textdomain": "evershop-integration",
+  "supports": {
+    "html": false,
+    "align": ["wide", "full"]
+  },
+  "attributes": {
+    "title": {
+      "type": "string",
+      "default": "Customer Reviews"
+    },
+    "testimonials": {
+      "type": "array",
+      "default": []
+    },
+    "autoplay": {
+      "type": "boolean",
+      "default": true
+    },
+    "delay": {
+      "type": "number",
+      "default": 5000
+    }
+  },
+  "example": {
+    "attributes": {
+      "title": "What Our Customers Say",
+      "testimonials": [
+        {
+          "author": "John Doe",
+          "rating": 5,
+          "content": "Amazing product! Highly recommended.",
+          "role": "Professional Athlete"
+        }
+      ]
+    }
+  }
+}
+

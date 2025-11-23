@@ -1,0 +1,60 @@
+/**
+ * Debug CSS for Variation Add to Cart
+ * 
+ * 临时调试样式 - 确保变体商品的按钮显示
+ * 
+ * @package EverShop_Theme
+ * @version 1.0.0
+ */
+
+/* 强制显示所有变体相关的容器 */
+.single-product form.variations_form {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+.single-product .single_variation_wrap {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    min-height: 60px !important;
+    padding: 10px !important;
+}
+
+.single-product .woocommerce-variation-add-to-cart {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    padding: 10px !important;
+}
+
+.single-product .evershop-variation-add-to-cart {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    padding: 10px !important;
+}
+
+.single-product .evershop-add-to-cart-container {
+    display: flex !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* 确保隐藏的元素保持隐藏 */
+.single-product table.variations {
+    display: none !important;
+}
+
+.single-product .reset_variations {
+    display: none !important;
+}
+
+.single-product .woocommerce-variation.single_variation {
+    display: none !important;
+}
+
+/* 调试信息 - 控制台输出 */
+/* 不在页面上显示红色横幅，改用控制台 */
+

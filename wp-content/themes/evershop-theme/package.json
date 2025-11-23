@@ -1,0 +1,26 @@
+{
+  "name": "evershop-theme",
+  "version": "1.0.0",
+  "description": "专业健身营养补剂商城 WordPress 主题，基于 Jay Cutler 品牌风格，采用深色主题配色方案，完美适配健身营养品电商网站。",
+  "main": "index.js",
+  "scripts": {
+    "dev": "tailwindcss -i ./src/input.css -o ./style.css --watch",
+    "build": "tailwindcss -i ./src/input.css -o ./style.css"
+  },
+  "keywords": [
+    "wordpress",
+    "theme",
+    "fitness",
+    "nutrition",
+    "gym",
+    "jay-cutler",
+    "woocommerce"
+  ],
+  "author": "dominikwei",
+  "license": "MIT",
+  "devDependencies": {
+    "autoprefixer": "^10.4.22",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.17"
+  }
+}

@@ -1,0 +1,298 @@
+/**
+ * Inline Search Input Styles
+ * 
+ * 内联搜索框 - 在搜索图标左侧展开
+ * 深黑色主题，淡入淡出效果
+ * 
+ * @package EverShop_Theme
+ * @version 2.0.0
+ */
+
+/* ========================================
+   内联搜索容器
+   ======================================== */
+.inline-search-container {
+    position: relative;
+}
+
+/* 搜索输入框包装器 - 桌面端默认样式 */
+#search-input-wrapper {
+    /* 定位（桌面端：图标左侧）*/
+    position: absolute;
+    right: 100%;
+    top: 50%;
+    margin-right: 0.5rem;
+    
+    /* 隐藏状态 */
+    transform: translateY(-50%) translateX(10px);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    
+    /* 样式 */
+    white-space: nowrap;
+    
+    /* 动画和性能 */
+    will-change: opacity, transform;
+    transition: all 0.3s ease-out;
+    z-index: 1;
+}
+
+/* 桌面端展开状态 - 显示搜索框 */
+#search-input-wrapper.active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(-50%) translateX(0);
+}
+
+/* ========================================
+   搜索输入框样式
+   ======================================== */
+#inline-search-input {
+    /* 尺寸和布局 */
+    width: 16rem; /* 256px */
+    padding: 0.625rem 2.5rem 0.625rem 1rem; /* py-2.5 px-4，右侧留空给清除按钮 */
+    
+    /* 字体 */
+    font-size: 0.875rem;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    
+    /* 颜色 */
+    background-color: #252525 !important;
+    color: white !important;
+    border: 1px solid #444;
+    
+    /* 效果 */
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+/* 桌面端更宽 */
+@media (min-width: 768px) {
+    #inline-search-input {
+        width: 20rem; /* 320px */
+    }
+}
+
+#inline-search-input::placeholder {
+    font-weight: 300;
+    opacity: 0.6;
+    color: #9ca3af !important;
+}
+
+/* 输入框聚焦时的效果 */
+#inline-search-input:focus {
+    background-color: #2a2a2a !important;
+    border-color: #fe5000;
+    box-shadow: 0 0 0 1px rgba(254, 80, 0, 0.5),
+                0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* ========================================
+   搜索表单样式
+   ======================================== */
+#search-input-wrapper form {
+    position: relative;
+    display: inline-block;
+}
+
+/* ========================================
+   清除按钮样式
+   ======================================== */
+#clear-search-btn {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 0.375rem;
+    color: #9ca3af;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    opacity: 0;
+    pointer-events: none;
+}
+
+#clear-search-btn:hover {
+    color: #ffffff;
+    transform: translateY(-50%) rotate(90deg);
+}
+
+#clear-search-btn svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* 输入框有内容时显示清除按钮 */
+#inline-search-input:not(:placeholder-shown) ~ #clear-search-btn {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ========================================
+   搜索图标按钮效果
+   ======================================== */
+#search-icon-toggle {
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+/* 搜索框打开时，图标高亮 */
+#search-input-wrapper.active ~ #search-icon-toggle {
+    color: var(--cutler-orange, #fe5000) !important;
+}
+
+/* ========================================
+   确保不影响其他图标布局
+   ======================================== */
+.header__middle__right {
+    position: relative;
+}
+
+/* 搜索容器不占空间 */
+.inline-search-container {
+    flex-shrink: 0;
+}
+
+/* ========================================
+   桌面端：搜索框展开时的背景遮罩和菜单处理
+   ======================================== */
+/* 半透明背景遮罩 - 桌面端和移动端都显示 */
+.search-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+    z-index: 40;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.search-backdrop.active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+/* 搜索框展开时，提升其层级到遮罩之上 */
+#search-input-wrapper.active {
+    z-index: 50 !important;
+}
+
+/* 桌面端：搜索展开时淡化中间菜单 */
+@media (min-width: 768px) {
+    .header__middle__center {
+        transition: opacity 0.3s ease;
+    }
+    
+    /* 搜索框打开时，淡化中间菜单 */
+    body.search-active .header__middle__center {
+        opacity: 0.3;
+        pointer-events: none;
+    }
+}
+
+
+/* ========================================
+   移动端优化
+   ======================================== */
+@media (max-width: 767px) {
+    /* 移动端：搜索框改为从顶部展开，全宽显示 */
+    #search-input-wrapper {
+        /* 定位 */
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        
+        /* 隐藏状态 */
+        transform: translateY(-100%) !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+        
+        /* 样式 */
+        margin: 0 !important;
+        padding: 1.25rem 1rem;
+        background: linear-gradient(to bottom, #1a1a1a 0%, #1a1a1a 90%, rgba(26, 26, 26, 0.95) 100%);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+        border-bottom: 1px solid #333;
+        
+        /* 层级和动画 */
+        z-index: 50;
+        transition: all 0.3s ease-out;
+    }
+    
+    /* 移动端展开状态 */
+    #search-input-wrapper.active {
+        transform: translateY(0) !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+    }
+    
+    #search-input-wrapper form {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    #inline-search-input {
+        font-size: 16px !important; /* 防止iOS自动缩放 */
+        width: 100% !important;
+        max-width: 100%;
+        height: 48px;
+        padding-left: 1rem;
+        padding-right: 3rem;
+    }
+    
+    /* 移动端：清除按钮位置调整 */
+    #clear-search-btn {
+        right: 0.75rem;
+    }
+    
+    /* 移动端：添加关闭按钮（X图标）*/
+    #search-input-wrapper.active::after {
+        content: '';
+        position: absolute;
+        top: 1.25rem;
+        right: 1rem;
+        width: 32px;
+        height: 32px;
+        cursor: pointer;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpath d='M6 18L18 6M6 6l12 12'/%3E%3C/svg%3E") center/20px no-repeat;
+        opacity: 0.7;
+        transition: opacity 0.2s;
+    }
+    
+    #search-input-wrapper.active::after:hover {
+        opacity: 1;
+    }
+    
+    /* 移动端：搜索图标在展开时高亮 */
+    .inline-search-container.mobile-search-active #search-icon-toggle {
+        color: var(--cutler-orange, #fe5000) !important;
+    }
+}
+
+/* ========================================
+   性能优化
+   ======================================== */
+@media (prefers-reduced-motion: reduce) {
+    #search-input-wrapper,
+    #clear-search-btn,
+    #search-icon-toggle {
+        transition-duration: 0.01ms !important;
+    }
+}

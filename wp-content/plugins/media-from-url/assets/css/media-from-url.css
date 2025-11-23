@@ -1,0 +1,164 @@
+/* 模态框样式 */
+.media-from-url-modal {
+    position: fixed;
+    z-index: 200000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.6);
+}
+
+.media-from-url-modal-content {
+    background-color: #fff;
+    margin: 5% auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    width: 90%;
+    max-width: 600px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.media-from-url-modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.media-from-url-modal-header h2 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.media-from-url-close {
+    color: #787c82;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.2s;
+    line-height: 1;
+}
+
+.media-from-url-close:hover,
+.media-from-url-close:focus {
+    color: #000;
+}
+
+.media-from-url-modal-body {
+    padding: 24px;
+}
+
+.media-from-url-input {
+    width: 100%;
+    padding: 12px;
+    font-size: 14px;
+    border: 1px solid #8c8f94;
+    border-radius: 4px;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+
+.media-from-url-input:focus {
+    border-color: #2271b1;
+    outline: none;
+    box-shadow: 0 0 0 1px #2271b1;
+}
+
+.media-from-url-preview {
+    margin-top: 20px;
+    padding: 16px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #f6f7f7;
+    text-align: center;
+}
+
+.media-from-url-preview img,
+.media-from-url-preview video {
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.media-from-url-message {
+    margin-top: 16px;
+    padding: 12px;
+    border-radius: 4px;
+    display: none;
+}
+
+.media-from-url-message.error {
+    background-color: #fcf0f1;
+    border-left: 4px solid #d63638;
+    color: #50575e;
+    display: block;
+}
+
+.media-from-url-message.success {
+    background-color: #edfaef;
+    border-left: 4px solid #00a32a;
+    color: #1e1e1e;
+    display: block;
+}
+
+.media-from-url-modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid #ddd;
+    text-align: right;
+    background-color: #f6f7f7;
+    border-radius: 0 0 4px 4px;
+}
+
+.media-from-url-modal-footer .button {
+    margin-left: 8px;
+}
+
+.media-from-url-wrapper {
+    border-radius: 4px;
+}
+
+.media-from-url-wrapper h3 {
+    margin-top: 0;
+    margin-bottom: 8px;
+    font-size: 18px;
+}
+
+.media-from-url-wrapper p {
+    margin: 0 0 16px 0;
+    color: #50575e;
+}
+
+#media-from-url-btn {
+    padding: 8px 20px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .media-from-url-modal-content {
+        width: 95%;
+        margin: 10% auto;
+    }
+    
+    .media-from-url-modal-header,
+    .media-from-url-modal-body,
+    .media-from-url-modal-footer {
+        padding: 16px;
+    }
+}
+

@@ -1,0 +1,31 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "evershop/custom-html",
+  "title": "Custom HTML",
+  "category": "evershop",
+  "icon": "editor-code",
+  "description": "Insert custom HTML code with optional CSS class for advanced customization.",
+  "keywords": ["html", "code", "custom", "advanced", "evershop"],
+  "textdomain": "evershop-integration",
+  "supports": {
+    "html": false,
+    "align": ["wide", "full"]
+  },
+  "attributes": {
+    "content": {
+      "type": "string",
+      "default": ""
+    },
+    "className": {
+      "type": "string",
+      "default": ""
+    }
+  },
+  "example": {
+    "attributes": {
+      "content": "<div style='padding: 20px; background: #f0f0f0; border-radius: 8px;'><h3>Custom Content</h3><p>Add any HTML here.</p></div>"
+    }
+  }
+}
+

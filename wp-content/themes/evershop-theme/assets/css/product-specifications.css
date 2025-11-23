@@ -1,0 +1,51 @@
+/**
+ * 产品规格样式
+ * Product Specifications Styles
+ * 对应 EverShop 的 ProductSpecifications.tsx
+ */
+
+.product-specifications {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin: 1.5rem 0;
+}
+
+.specification-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+}
+
+.specification-icon {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+}
+
+.specification-icon path {
+    stroke: #10C610;
+    stroke-width: 2;
+}
+
+.specification-text {
+    font-size: 0.938rem;
+    color: #374151;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .specification-text {
+        font-size: 0.875rem;
+    }
+    
+    .specification-icon {
+        width: 20px;
+        height: 20px;
+    }
+}
+

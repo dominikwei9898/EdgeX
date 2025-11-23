@@ -1,0 +1,80 @@
+/* Optimize form.cart display */
+form.cart {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: stretch;
+}
+
+/* Hide standard variations table but keep form functionality */
+.single-product .variations {
+    display: none !important;
+}
+
+/* Style Quantity Input */
+.woocommerce .quantity {
+    width: 80px !important;
+    margin: 0 !important;
+    display: flex !important;
+}
+
+.woocommerce .quantity .qty {
+    width: 100% !important;
+    height: 48px !important; /* Match button height */
+    border-radius: 8px 0 0 8px !important; /* Left side rounded */
+    border: 1px solid #e2e8f0 !important;
+    text-align: center !important;
+    font-size: 16px !important;
+    padding: 0 !important;
+}
+
+/* Style Add to Cart Button */
+.single_add_to_cart_button.button {
+    flex-grow: 1;
+    height: 48px !important;
+    border-radius: 0 8px 8px 0 !important; /* Right side rounded */
+    background-color: var(--cutler-orange) !important; /* Match reference color */
+    color: white !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    padding: 0 20px !important;
+    border: none !important;
+    transition: all 0.2s ease !important;
+}
+
+.single_add_to_cart_button.button:hover {
+    background-color: var(--cutler-orange-dark) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.single_add_to_cart_button.button.loading {
+    opacity: 0.7;
+    cursor: wait;
+}
+
+/* Fix for simple products where quantity has different structure */
+.product-actions .quantity {
+    margin-right: 0 !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    form.cart {
+        width: 100%;
+    }
+    .single_add_to_cart_button.button {
+        width: auto;
+    }
+}
+
+/* Ensure quantity and button are visually connected like an input group */
+.product-actions form.cart .quantity {
+    margin-right: -1px !important; /* Overlap borders */
+    z-index: 1;
+}
+.product-actions form.cart button {
+    z-index: 0;
+}
+

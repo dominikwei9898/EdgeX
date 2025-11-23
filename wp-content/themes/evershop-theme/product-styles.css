@@ -1,0 +1,194 @@
+/* ============================================
+   Product Detail Page Styles (WordPress 适配)
+   ============================================ */
+
+/* Breadcrumbs */
+.woocommerce-breadcrumb {
+    font-size: 0.875rem;
+    color: #6b7280; /* text-gray-500 */
+    margin-bottom: 1rem;
+}
+.woocommerce-breadcrumb a {
+    color: inherit;
+    text-decoration: none;
+}
+.woocommerce-breadcrumb a:hover {
+    color: var(--cutler-orange);
+}
+
+/* Layout Grid - Tailwind 模拟 */
+.grid {
+    display: grid;
+}
+.grid-cols-1 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+.grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.gap-4 {
+    gap: 1rem;
+}
+.gap-7 {
+    gap: 1.75rem;
+}
+@media (min-width: 768px) {
+    .md\:grid-cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* Gallery */
+.product-media-gallery .main-image img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+.gallery-item img {
+    width: 100%;
+    height: auto;
+    display: block;
+    transition: opacity 0.2s;
+}
+.gallery-item:hover img {
+    opacity: 0.8;
+}
+
+/* Product Info */
+.product-single-name {
+    font-family: 'Oswald', sans-serif; /* 假设 Evershop 用了类似字体，或者继承主题字体 */
+    line-height: 1.2;
+}
+
+.product-price p.price {
+    color: var(--cutler-orange);
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+}
+.product-price p.price del {
+    color: #9ca3af;
+    font-size: 1rem;
+    font-weight: 400;
+    margin-right: 0.5rem;
+}
+.product-price p.price ins {
+    text-decoration: none;
+}
+
+/* Add to Cart Form */
+.product-form-container form.cart {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: flex-end;
+}
+
+/* Quantity Input */
+.quantity {
+    display: inline-flex;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.25rem;
+    overflow: hidden;
+}
+.quantity input.qty {
+    width: 4rem;
+    height: 3rem;
+    text-align: center;
+    border: none;
+    padding: 0;
+    font-size: 1rem;
+    background: white;
+    color: black;
+}
+/* Removing spin buttons */
+.quantity input.qty::-webkit-outer-spin-button,
+.quantity input.qty::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Add to Cart Button */
+button.single_add_to_cart_button {
+    background-color: var(--cutler-orange) !important;
+    color: white !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    padding: 0 2rem !important;
+    height: 3rem;
+    border-radius: 0.25rem !important;
+    border: none !important;
+    transition: background-color 0.2s;
+    flex-grow: 1;
+    max-width: 20rem;
+}
+button.single_add_to_cart_button:hover {
+    background-color: var(--cutler-orange-dark) !important;
+}
+
+/* Variations (if variable product) */
+.variations {
+    width: 100%;
+    margin-bottom: 1rem;
+    border: none;
+}
+.variations td {
+    padding: 0.5rem 0;
+    display: block; /* Stack label and select on mobile */
+}
+.variations label {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    display: block;
+    color: var(--cutler-text-light);
+}
+.variations select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+    background-color: white;
+    color: black;
+}
+
+/* Tabs / Description */
+.product-single-description h2 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid var(--cutler-orange);
+    display: inline-block;
+    padding-bottom: 0.5rem;
+}
+.prose {
+    max-width: 65ch;
+    color: #d1d5db; /* Light gray text for dark theme */
+}
+.prose p {
+    margin-bottom: 1rem;
+}
+
+/* Reviews / Comments */
+#reviews h3 {
+    margin-bottom: 1rem;
+}
+.comment-form-rating {
+    margin-bottom: 1rem;
+}
+.stars a {
+    display: inline-block;
+    margin-right: 0.5rem;
+    color: var(--cutler-orange);
+}
+
+/* Related Products (Bottom) */
+.related.products {
+    margin-top: 4rem;
+    padding-top: 2rem;
+    border-top: 1px solid #374151;
+}
+.related.products h2 {
+    font-size: 1.75rem;
+    margin-bottom: 2rem;
+    text-align: center;
+}
+

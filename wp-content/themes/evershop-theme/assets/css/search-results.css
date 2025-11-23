@@ -1,0 +1,118 @@
+/**
+ * Search Results Page Styles
+ * 搜索结果页面样式
+ * 
+ * @package Evershop_Theme
+ * @version 1.0.0
+ */
+
+/* ========================================
+   搜索结果页面头部
+   ======================================== */
+
+.search-results-header {
+    margin-bottom: 2rem;
+    padding: 2rem 0;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.search-results-header .page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 0.5rem;
+    line-height: 1.2;
+}
+
+.search-results-header .search-query-info {
+    color: #666;
+    font-size: 1rem;
+    margin: 0;
+}
+
+.search-results-header .search-query-info strong {
+    color: #d4772b;
+    font-weight: 600;
+}
+
+/* ========================================
+   空搜索结果
+   ======================================== */
+
+.no-search-results {
+    text-align: center;
+    padding: 3rem 1rem;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.no-search-results h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 1rem;
+}
+
+.no-search-results p {
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+}
+
+.no-search-results p strong {
+    color: #d4772b;
+}
+
+.no-search-results .button {
+    display: inline-block;
+    padding: 0.75rem 2rem;
+    background: #d4772b;
+    color: white;
+    text-decoration: none;
+    border-radius: 0.25rem;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+}
+
+.no-search-results .button:hover {
+    background: #b8621f;
+    color: white;
+}
+
+/* ========================================
+   响应式设计
+   ======================================== */
+
+@media (max-width: 768px) {
+    .search-results-header {
+        padding: 1.5rem 0;
+    }
+    
+    .search-results-header .page-title {
+        font-size: 1.5rem;
+    }
+    
+    .search-results-header .search-query-info {
+        font-size: 0.9rem;
+    }
+    
+    .no-search-results {
+        padding: 2rem 1rem;
+    }
+    
+    .no-search-results h2 {
+        font-size: 1.25rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .search-results-header .page-title {
+        font-size: 1.25rem;
+    }
+    
+    .no-search-results .button {
+        padding: 0.625rem 1.5rem;
+        font-size: 0.9rem;
+    }
+}
+

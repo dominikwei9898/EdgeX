@@ -1,0 +1,41 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "evershop/product-videos",
+  "title": "Product Videos",
+  "category": "evershop",
+  "icon": "video-alt3",
+  "description": "Display product videos in a carousel slider. Supports YouTube, Vimeo, and self-hosted videos.",
+  "keywords": ["video", "youtube", "vimeo", "carousel", "evershop"],
+  "textdomain": "evershop-integration",
+  "supports": {
+    "html": false,
+    "align": ["wide", "full"]
+  },
+  "attributes": {
+    "title": {
+      "type": "string",
+      "default": "Product Videos"
+    },
+    "videos": {
+      "type": "array",
+      "default": []
+    },
+    "autoplay": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "example": {
+    "attributes": {
+      "title": "Watch Jay Cutler in Action",
+      "videos": [
+        {
+          "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+          "title": "Product Demo"
+        }
+      ]
+    }
+  }
+}
+

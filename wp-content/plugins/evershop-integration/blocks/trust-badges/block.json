@@ -1,0 +1,47 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "evershop/trust-badges",
+  "title": "Trust Badges",
+  "category": "evershop",
+  "icon": "shield",
+  "description": "Display trust badges to build customer confidence with icons and descriptions.",
+  "keywords": ["trust", "badges", "guarantee", "security", "evershop"],
+  "textdomain": "evershop-integration",
+  "supports": {
+    "html": false,
+    "align": ["wide", "full"]
+  },
+  "attributes": {
+    "badges": {
+      "type": "array",
+      "default": []
+    },
+    "layout": {
+      "type": "string",
+      "default": "horizontal"
+    }
+  },
+  "example": {
+    "attributes": {
+      "badges": [
+        {
+          "icon": "🔒",
+          "title": "Secure Payment",
+          "description": "100% secure transactions"
+        },
+        {
+          "icon": "🚚",
+          "title": "Free Shipping",
+          "description": "On orders over $50"
+        },
+        {
+          "icon": "↩️",
+          "title": "30-Day Returns",
+          "description": "Money-back guarantee"
+        }
+      ]
+    }
+  }
+}
+

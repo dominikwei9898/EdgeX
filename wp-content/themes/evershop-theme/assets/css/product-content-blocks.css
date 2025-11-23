@@ -1,0 +1,394 @@
+/**
+ * Product Content Blocks Styles
+ * Key Benefits, Videos, Testimonials
+ */
+
+/* ==========================================
+   Key Benefits Section
+   ========================================== */
+
+.key-benefits {
+    padding: 60px 0;
+    background: #fff;
+}
+
+.benefits-grid {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: 30px;
+}
+
+@media (min-width: 768px) {
+    .benefits-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .benefits-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.benefit-card {
+    text-align: center;
+    padding: 30px 20px;
+    border-radius: 8px;
+    background: #f9fafb;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.benefit-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.benefit-icon {
+    font-size: 48px;
+    margin-bottom: 20px;
+    line-height: 1;
+}
+
+.benefit-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #111;
+}
+
+.benefit-description {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #666;
+    margin: 0;
+}
+
+/* ==========================================
+   Product Videos Section
+   ========================================== */
+
+.product-videos {
+    padding: 60px 0;
+    background: #f9fafb;
+}
+
+.product-videos .page-width {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.videos-title {
+    font-size: 32px;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 40px;
+    color: #111;
+}
+
+.videos-grid {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: 20px;
+}
+
+@media (min-width: 768px) {
+    .videos-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .videos-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.video-item {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.video-item:hover {
+    transform: scale(1.05);
+}
+
+.video-thumbnail {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.video-play-button {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+    color: #ef4444;
+}
+
+.video-play-button:hover {
+    transform: translate(-50%, -50%) scale(1.1);
+}
+
+/* Video Modal */
+.video-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+}
+
+.video-modal.active {
+    display: block;
+}
+
+.video-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+}
+
+.video-modal-content {
+    position: relative;
+    width: 90%;
+    max-width: 1000px;
+    margin: 50px auto;
+    z-index: 10000;
+}
+
+.video-modal-close {
+    position: absolute;
+    top: -40px;
+    right: 0;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 36px;
+    cursor: pointer;
+    padding: 0;
+    width: 40px;
+    height: 40px;
+    line-height: 1;
+}
+
+.video-modal-close:hover {
+    color: #ef4444;
+}
+
+.video-modal-player {
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 aspect ratio */
+    height: 0;
+    overflow: hidden;
+    border-radius: 12px;
+}
+
+.video-modal-player iframe,
+.video-modal-player video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+/* ==========================================
+   Product Testimonials Section
+   ========================================== */
+
+.product-testimonials {
+    padding: 60px 0;
+    background: #fff;
+    overflow: hidden;
+}
+
+.testimonials-title {
+    font-size: 32px;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 50px;
+    color: #111;
+}
+
+.testimonials-slider {
+    position: relative;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 60px;
+}
+
+.testimonials-track {
+    display: flex;
+    gap: 20px;
+    transition: transform 0.5s ease-in-out;
+}
+
+.testimonial-card {
+    flex: 0 0 auto;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: box-shadow 0.3s ease;
+}
+
+.testimonial-card:hover {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.testimonial-rating {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 15px;
+}
+
+.testimonial-rating .star {
+    width: 20px;
+    height: 20px;
+    fill: #d1d5db;
+}
+
+.testimonial-rating .star.filled {
+    fill: #fbbf24;
+}
+
+.testimonial-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #111;
+}
+
+.testimonial-content {
+    font-size: 15px;
+    line-height: 1.7;
+    color: #4b5563;
+    margin-bottom: 20px;
+}
+
+.testimonial-author {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-top: 20px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.testimonial-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.testimonial-author-info {
+    flex: 1;
+}
+
+.testimonial-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #111;
+    margin-bottom: 4px;
+}
+
+.testimonial-verified {
+    font-size: 12px;
+    color: #22c55e;
+}
+
+/* Slider Navigation Buttons */
+.slider-prev,
+.slider-next {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: white;
+    border: 1px solid #e5e7eb;
+    cursor: pointer;
+    font-size: 24px;
+    color: #111;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    z-index: 10;
+}
+
+.slider-prev:hover,
+.slider-next:hover {
+    background: #111;
+    color: white;
+    border-color: #111;
+}
+
+.slider-prev:disabled,
+.slider-next:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.slider-prev {
+    left: 0;
+}
+
+.slider-next {
+    right: 0;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 767px) {
+    .product-videos,
+    .product-testimonials,
+    .key-benefits {
+        padding: 40px 0;
+    }
+    
+    .videos-title,
+    .testimonials-title {
+        font-size: 24px;
+        margin-bottom: 30px;
+    }
+    
+    .testimonials-slider {
+        padding: 0 50px;
+    }
+    
+    .slider-prev,
+    .slider-next {
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+    }
+    
+    .testimonial-card {
+        padding: 20px;
+    }
+}
+
+/* Tablet */
+@media (min-width: 768px) and (max-width: 1023px) {
+    .testimonials-slider {
+        padding: 0 55px;
+    }
+}
+

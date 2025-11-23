@@ -1,0 +1,304 @@
+/**
+ * Custom Add to Cart & Quantity Selector Styles
+ * 
+ * EverShop Theme - 自定义购物车组件样式
+ * 
+ * @package EverShop_Theme
+ * @version 1.0.0
+ */
+
+/* ========================================
+   容器布局
+   ======================================== */
+.evershop-add-to-cart-container {
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+    width: 100%;
+}
+
+/* ========================================
+   数量选择器
+   ======================================== */
+.evershop-quantity-selector {
+    flex: 0 0 auto;
+    min-width: 140px;
+}
+
+.quantity-input-wrapper {
+    display: flex;
+    align-items: center;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    background: #ffffff;
+    height: 52px;
+    transition: all 0.2s ease;
+}
+
+.quantity-input-wrapper:hover {
+    border-color: #d1d5db;
+}
+
+.quantity-input-wrapper:focus-within {
+    border-color: #000000;
+    box-shadow: 0 0 0 1px #000000;
+}
+
+/* 数量输入框 */
+.quantity-input-wrapper input.qty {
+    flex: 1;
+    border: none;
+    background: transparent;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+    padding: 0 8px;
+    height: 100%;
+    width: 48px;
+    min-width: 48px;
+    -moz-appearance: textfield; /* Firefox */
+}
+
+.quantity-input-wrapper input.qty::-webkit-outer-spin-button,
+.quantity-input-wrapper input.qty::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.quantity-input-wrapper input.qty:focus {
+    outline: none;
+}
+
+/* 加减按钮 */
+.quantity-btn {
+    flex: 0 0 44px;
+    width: 44px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+}
+
+.quantity-btn:hover {
+    background: #f9fafb;
+    color: #111827;
+}
+
+.quantity-btn:active {
+    background: #f3f4f6;
+}
+
+.quantity-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.quantity-btn:disabled:hover {
+    background: transparent;
+    color: #6b7280;
+}
+
+.quantity-btn svg {
+    width: 16px;
+    height: 16px;
+    pointer-events: none;
+}
+
+/* 第一个和最后一个按钮的圆角 */
+.quantity-minus {
+    border-radius: 6px 0 0 6px;
+}
+
+.quantity-plus {
+    border-radius: 0 6px 6px 0;
+}
+
+/* ========================================
+   Add to Cart 按钮
+   ======================================== */
+.evershop-add-to-cart-button {
+    flex: 1;
+    min-width: 200px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    
+    background: #000000;
+    color: #ffffff;
+    border: 2px solid #000000;
+    border-radius: 8px;
+    
+    font-size: 16px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    
+    cursor: pointer;
+    transition: all 0.2s ease;
+    
+    position: relative;
+    overflow: hidden;
+}
+
+.evershop-add-to-cart-button:hover {
+    background: #1a1a1a;
+    border-color: #1a1a1a;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.evershop-add-to-cart-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* 禁用状态 */
+.evershop-add-to-cart-button:disabled,
+.evershop-add-to-cart-button.disabled {
+    background: #f3f4f6;
+    border-color: #e5e7eb;
+    color: #9ca3af;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.evershop-add-to-cart-button:disabled:hover,
+.evershop-add-to-cart-button.disabled:hover {
+    background: #f3f4f6;
+    border-color: #e5e7eb;
+    transform: none;
+}
+
+/* 加载状态 */
+.evershop-add-to-cart-button.loading {
+    pointer-events: none;
+}
+
+.evershop-add-to-cart-button.loading .button-text {
+    opacity: 0.6;
+}
+
+.evershop-add-to-cart-button.loading .button-loader {
+    display: flex !important;
+}
+
+/* 加载动画 */
+.button-loader {
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.spinner {
+    animation: rotate 1s linear infinite;
+}
+
+.spinner .path {
+    stroke: currentColor;
+    stroke-linecap: round;
+    animation: dash 1.5s ease-in-out infinite;
+}
+
+@keyframes rotate {
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes dash {
+    0% {
+        stroke-dasharray: 1, 150;
+        stroke-dashoffset: 0;
+    }
+    50% {
+        stroke-dasharray: 90, 150;
+        stroke-dashoffset: -35;
+    }
+    100% {
+        stroke-dasharray: 90, 150;
+        stroke-dashoffset: -124;
+    }
+}
+
+/* ========================================
+   响应式设计
+   ======================================== */
+@media (max-width: 640px) {
+    .evershop-add-to-cart-container {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .evershop-quantity-selector {
+        width: 100%;
+        min-width: 100%;
+    }
+    
+    .evershop-add-to-cart-button {
+        width: 100%;
+        min-width: 100%;
+    }
+}
+
+/* ========================================
+   变体商品特殊样式
+   ======================================== */
+.evershop-variation-add-to-cart {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: auto !important;
+}
+
+/* 隐藏提示文字（选择选项后显示） */
+.woocommerce-variation-add-to-cart .woocommerce-variation-availability {
+    margin-bottom: 12px;
+}
+
+/* ========================================
+   与现有主题的兼容性
+   ======================================== */
+.product-actions .cart {
+    width: 100%;
+}
+
+.product-actions .evershop-cart-form,
+.product-actions .variations_form {
+    display: block;
+}
+
+/* 覆盖 WooCommerce 默认样式 */
+.single-product div.product form.cart .quantity {
+    margin: 0;
+}
+
+.single-product div.product form.cart button.button {
+    margin: 0;
+}
+
+/* ========================================
+   辅助功能
+   ======================================== */
+.screen-reader-text {
+    border: 0;
+    clip: rect(1px, 1px, 1px, 1px);
+    clip-path: inset(50%);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    width: 1px;
+    word-wrap: normal !important;
+}
+
