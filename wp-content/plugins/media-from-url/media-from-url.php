@@ -36,8 +36,8 @@ class Media_From_URL {
      * 加载脚本和样式
      */
     public function enqueue_scripts($hook) {
-        // 只在媒体库页面加载
-        if ($hook !== 'upload.php' && $hook !== 'post.php' && $hook !== 'post-new.php') {
+        // 只在媒体库相关页面加载
+        if ($hook !== 'upload.php' && $hook !== 'media-new.php' && $hook !== 'post.php' && $hook !== 'post-new.php') {
             return;
         }
         
@@ -93,7 +93,8 @@ class Media_From_URL {
      */
     public function add_url_upload_button_footer() {
         $screen = get_current_screen();
-        if ($screen && $screen->id === 'upload') {
+        // 在媒体库列表页和媒体上传页都添加按钮
+        if ($screen && ($screen->id === 'upload' || $screen->id === 'media')) {
             ?>
             <script type="text/javascript">
             jQuery(document).ready(function($) {
