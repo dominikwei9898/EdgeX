@@ -6,6 +6,7 @@
 wp-content/*
 !wp-content/plugins/
 wp-content/plugins/*
+!wp-content/plugins/cajipay-payments-for-woocommerce/
 !wp-content/plugins/evershop-integration/
 !wp-content/plugins/media-from-url/
 !wp-content/themes/
