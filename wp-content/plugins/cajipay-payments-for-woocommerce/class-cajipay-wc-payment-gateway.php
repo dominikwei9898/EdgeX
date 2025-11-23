@@ -93,13 +93,20 @@ class CajipayWCPaymentGateway extends WC_Payment_Gateway {
 	public function process_payment($order_id) {
 	    $this->log("=== START process_payment for Order #$order_id ===");
 	    $order = new WC_Order ( $order_id );
-	    $cajipay_data = isset($_POST['cajipay_data']) ? $_POST['cajipay_data'] : null;
+	    $cajipay_data = isset($_POST['cajipay_data']) ? $_POST['cajipay_data'] : array();
+	    if (empty($cajipay_data)) {
+	        $cajipay_data = array();
+	    }
+	    // DEBUG: Log full checkout parameters
+	    $this->log("=== DEBUG: WC Checkout Params (wc-ajax=checkout) ===");
+	    $this->log("POST Params: " . print_r($_POST, true));
 	    $this->log("Raw POST cajipay_data: " . print_r($cajipay_data, true));
 	    
 	    $encoded_data = base64_encode(json_encode($cajipay_data));
 	    $submit_url = $order->get_checkout_payment_url ( true )."&cajipay_data=".$encoded_data;
 	    
 	    $this->log("Redirect URL generated: $submit_url");
+	    $this->log("=== DEBUG: END WC Checkout Response ===");
 	    return array (
 	        'result' => 'success',
 	        'redirect' => $submit_url
@@ -222,6 +229,11 @@ class CajipayWCPaymentGateway extends WC_Payment_Gateway {
         $order_data['shopping_uri'] = get_option('siteurl');
 	    $order_data['cajipay_data'] = $_GET['cajipay_data'];
 
+	    // DEBUG: Log Order Pay Page parameters
+	    $this->log("=== DEBUG: Order Pay Page (checkout/order-pay/) ===");
+	    $this->log("GET Params: " . print_r($_GET, true));
+	    $this->log("POST Params: " . print_r($_POST, true));
+
 	    $this->log("=== PREPARE REQUEST for Order #$order_id ===");
 	    $this->log("Order Data Payload: " . print_r($order_data, true));
 
@@ -244,6 +256,8 @@ class CajipayWCPaymentGateway extends WC_Payment_Gateway {
         $result = $this->curlGet($gateway_url,$curl_params);
         if($result["errcode"] === 0) {
             $this->log("CURL Success. Response Data: " . print_r($result['data'], true));
+            // DEBUG: Log final output
+            $this->log("=== DEBUG: Order Pay Page Outputting HTML/Script ===");
             echo  $result['data'];
         }else{
             $this->log("CURL Error. ErrMsg: " . $result['errmsg']);
@@ -374,6 +388,8 @@ class CajipayWCPaymentGateway extends WC_Payment_Gateway {
         curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, $timeout);
         curl_setopt($curl, CURLOPT_TIMEOUT, $timeout);
         curl_setopt($curl, CURLOPT_HTTPHEADER, $header);
+        // 模拟浏览器 User-Agent 防止被 Cloudflare 等防火墙拦截
+        curl_setopt($curl, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
         $data = curl_exec($curl);
         $curlErrno = curl_errno($curl);
         $curlError = curl_error($curl);
@@ -386,14 +402,22 @@ class CajipayWCPaymentGateway extends WC_Payment_Gateway {
             return $gShow;
         }
         $result = json_decode($data, true);
+        
+        // Check if result is valid
+        if (!isset($result['code'])) {
+             $gShow['data']    = $data;
+             $gShow['errmsg']  = 'parse error! No code field. Response: ' . $data;
+             $gShow['errcode'] = 2;
+             return $gShow;
+        }
 
         if ($result['code'] == 0) {
             $gShow['data']    = $result['data'];
             $gShow['errmsg']  = 'success';
             $gShow['errcode'] = 0;
         } else {
-            $gShow['data']    = '';
-            $gShow['errmsg']  = 'parse error!';
+            $gShow['data']    = $data;
+            $gShow['errmsg']  = 'parse error! Response: ' . $data;
             $gShow['errcode'] = 2;
         }
 

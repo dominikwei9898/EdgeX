@@ -2084,3 +2084,65 @@ function evershop_remove_downloads_endpoint( $items ) {
     return $items;
 }
 add_filter( 'woocommerce_account_menu_items', 'evershop_remove_downloads_endpoint' );
+
+/**
+ * My Account Orders: Professional Date Column Format
+ * 专业化日期列展示格式
+ */
+function evershop_add_time_to_orders_date_column( $order ) {
+    $order_timestamp = $order->get_date_created();
+    if ( ! $order_timestamp ) {
+        return;
+    }
+    
+    // 格式化日期和时间
+    $date = $order_timestamp->date_i18n( 'j M Y' ); // 例如: 23 Nov 2025
+    $time = $order_timestamp->date_i18n( 'H:i' );   // 例如: 11:51
+    
+    // 输出专业格式
+    echo '<div style="line-height: 1.5;">';
+    echo '<time datetime="' . esc_attr( $order_timestamp->date( 'c' ) ) . '" style="display: block; font-weight: 500; color: #ffffff;">';
+    echo esc_html( $date );
+    echo '</time>';
+    echo '<span style="display: block; font-size: 0.875rem; color: rgba(255, 255, 255, 0.6); margin-top: 2px;">';
+    echo esc_html( $time );
+    echo '</span>';
+    echo '</div>';
+}
+add_action( 'woocommerce_my_account_my_orders_column_order-date', 'evershop_add_time_to_orders_date_column' );
+
+/**
+ * My Account Orders: Professional Total Column Format
+ * 专业化总价列展示格式
+ */
+function evershop_format_order_total_column( $order ) {
+    $total = $order->get_formatted_order_total();
+    $item_count = $order->get_item_count();
+    
+    // 输出专业格式
+    echo '<div style="line-height: 1.5;">';
+    echo '<span style="display: block; font-weight: 600; color: #ffffff; font-size: 1rem;">';
+    echo wp_kses_post( $total );
+    echo '</span>';
+    echo '<span style="display: block; font-size: 0.875rem; color: rgba(255, 255, 255, 0.6); margin-top: 2px;">';
+    echo sprintf( _n( '%s item', '%s items', $item_count, 'evershop-theme' ), number_format_i18n( $item_count ) );
+    echo '</span>';
+    echo '</div>';
+}
+add_action( 'woocommerce_my_account_my_orders_column_order-total', 'evershop_format_order_total_column' );
+
+/**
+ * My Account Orders: Filter Actions
+ * 只保留 "View" 按钮
+ */
+function evershop_filter_my_account_orders_actions( $actions, $order ) {
+    // 只保留 'view' 操作
+    $new_actions = array();
+    
+    if ( isset( $actions['view'] ) ) {
+        $new_actions['view'] = $actions['view'];
+    }
+    
+    return $new_actions;
+}
+add_filter( 'woocommerce_my_account_my_orders_actions', 'evershop_filter_my_account_orders_actions', 10, 2 );
