@@ -9,6 +9,7 @@ on:
       - 'wp-content/themes/evershop-theme/**'
       - 'wp-content/plugins/media-from-url/**'
       - 'wp-content/plugins/evershop-integration/**'
+      - 'wp-content/plugins/cajipay-payments-for-woocommerce/**'
 
 jobs:
   deploy:
