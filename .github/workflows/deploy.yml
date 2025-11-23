@@ -33,19 +33,19 @@ jobs:
       # 确保这里有一个空行，以避免与上一个 run 块冲突
       
       # 步骤 3: 同步自定义主题 (evershop-theme)
-      - name: Sync Theme: evershop-theme
+      - name: "Sync Theme: evershop-theme"
         run: |
           # 完整的 rsync 命令写在同一行
           rsync -avz --delete -e "ssh -p 22" ./wp-content/themes/evershop-theme/ ubuntu@${{ secrets.EC2_HOST }}:${{ env.TARGET_DIR }}/themes/evershop-theme/
 
       # 步骤 4: 同步插件 (media-from-url)
-      - name: Sync Plugin: media-from-url
+      - name: "Sync Plugin: media-from-url"
         run: |
           # 完整的 rsync 命令写在同一行
           rsync -avz --delete -e "ssh -p 22" ./wp-content/plugins/media-from-url/ ubuntu@${{ secrets.EC2_HOST }}:${{ env.TARGET_DIR }}/plugins/media-from-url/
 
       # 步骤 5: 同步插件 (evershop-integration)
-      - name: Sync Plugin: evershop-integration
+      - name: "Sync Plugin: evershop-integration"
         run: |
           # 完整的 rsync 命令写在同一行
           rsync -avz --delete -e "ssh -p 22" ./wp-content/plugins/evershop-integration/ ubuntu@${{ secrets.EC2_HOST }}:${{ env.TARGET_DIR }}/plugins/evershop-integration/
