@@ -990,17 +990,19 @@ add_filter('body_class', 'evershop_body_classes');
 
 
 /**
- * Load Custom Widgets
+ * ============================================
+ * 自定义 Widgets
+ * ============================================
  * 
- * Note: Variation Gallery 功能已移至 EverShop Integration 插件
- * 路径: /wp-content/plugins/evershop-integration/includes/class-evershop-variation-gallery.php
+ * 加载主题自定义的 Widget 类
+ * 注意：Variation Gallery 功能已移至 evershop-integration 插件
  */
 require get_template_directory() . '/inc/widgets/class-flash-sale-widget.php';
 require get_template_directory() . '/inc/widgets/class-hero-banner-widget.php';
 require get_template_directory() . '/inc/widgets/class-product-collection-widget.php';
 
 /**
- * Register Custom Widgets
+ * 注册自定义 Widgets
  */
 function evershop_register_widgets() {
     register_widget('Evershop_Flash_Sale_Widget');
@@ -1010,10 +1012,21 @@ function evershop_register_widgets() {
 add_action('widgets_init', 'evershop_register_widgets');
 
 /**
- * 在产品分类页面添加筛选器（仿照源网站 facets-container）
+ * ============================================
+ * 产品筛选器
+ * ============================================
+ */
+
+/**
+ * 在产品分类页面和商店页面添加筛选器
+ * 
+ * 功能包括：
+ * - 库存状态筛选（In stock / Out of stock）
+ * - 价格范围筛选（最小价格 - 最大价格）
+ * - 产品排序
+ * - 产品计数显示
  */
 function evershop_product_filters() {
-    // 检查 WooCommerce 函数是否存在
     if (!function_exists('is_product_category') || !function_exists('is_shop') || (!is_product_category() && !is_shop())) {
         return;
     }
@@ -1152,15 +1165,19 @@ function evershop_product_filters() {
 }
 
 /**
- * 应用产品筛选
+ * 应用产品筛选条件到主查询
+ * 
+ * 通过 pre_get_posts 钩子修改产品查询，支持：
+ * - 价格范围筛选（min_price, max_price）
+ * - 库存状态筛选（stock_status）
+ * - 默认只显示有货产品
  */
 function evershop_apply_product_filters($query) {
-    // 检查 WooCommerce 函数是否存在
     if (!is_admin() && $query->is_main_query() && function_exists('is_product_category') && function_exists('is_shop') && (is_product_category() || is_shop())) {
         $meta_query = $query->get('meta_query') ?: array();
         $tax_query = $query->get('tax_query') ?: array();
         
-        // 价格筛选
+        // 价格筛选：最小价格
         if (isset($_GET['min_price']) && !empty($_GET['min_price'])) {
             $meta_query[] = array(
                 'key' => '_price',
@@ -1170,6 +1187,7 @@ function evershop_apply_product_filters($query) {
             );
         }
         
+        // 价格筛选：最大价格
         if (isset($_GET['max_price']) && !empty($_GET['max_price'])) {
             $meta_query[] = array(
                 'key' => '_price',
@@ -1179,7 +1197,7 @@ function evershop_apply_product_filters($query) {
             );
         }
         
-        // 库存状态筛选 - 默认只显示有货产品
+        // 库存状态筛选：如果用户选择了状态，使用选择的状态；否则默认只显示有货产品
         if (isset($_GET['stock_status']) && !empty($_GET['stock_status'])) {
             $meta_query[] = array(
                 'key' => '_stock_status',
@@ -1187,7 +1205,6 @@ function evershop_apply_product_filters($query) {
                 'compare' => '='
             );
         } else {
-            // 默认只显示有货产品
             $meta_query[] = array(
                 'key' => '_stock_status',
                 'value' => 'instock',
@@ -1204,10 +1221,9 @@ function evershop_apply_product_filters($query) {
 add_action('pre_get_posts', 'evershop_apply_product_filters');
 
 /**
- * 在分类页面输出筛选器表单
+ * 在产品列表前输出筛选器表单
  */
 function evershop_output_filter_form() {
-    // 检查 WooCommerce 函数是否存在
     if (!function_exists('is_product_category') || !function_exists('is_shop') || (!is_product_category() && !is_shop())) {
         return;
     }
@@ -1219,7 +1235,9 @@ function evershop_output_filter_form() {
 add_action('woocommerce_before_shop_loop', 'evershop_output_filter_form', 15);
 
 /**
- * 隐藏默认的 WooCommerce result count 和 ordering
+ * 移除 WooCommerce 默认的产品计数和排序显示
+ * 
+ * 使用自定义的筛选器界面替代，已在 evershop_product_filters() 中实现
  */
 function evershop_remove_default_sorting() {
     remove_action('woocommerce_before_shop_loop', 'woocommerce_result_count', 20);
@@ -1228,21 +1246,25 @@ function evershop_remove_default_sorting() {
 add_action('init', 'evershop_remove_default_sorting');
 
 /**
- * 不要移除变体表单！
- * 我们通过模板覆盖和CSS来自定义显示
+ * 变体表单处理说明
  * 
- * 注意：如果移除 woocommerce_variable_add_to_cart，
- * 整个 variable.php 模板都不会加载，包括我们的自定义 Add to Cart 按钮
+ * 不移除 woocommerce_variable_add_to_cart action，保持 WooCommerce 默认的变体表单加载
+ * 通过主题模板覆盖（/woocommerce/single-product/add-to-cart/variable.php）和 CSS 来自定义显示样式
+ * 
+ * 如果移除此 action，整个 variable.php 模板将不会加载，导致变体产品无法正常工作
  */
-// function evershop_remove_default_variation_form() {
-//     remove_action('woocommerce_variable_add_to_cart', 'woocommerce_variable_add_to_cart', 30);
-// }
-// add_action('init', 'evershop_remove_default_variation_form');
 
 /**
- * 隐藏 WooCommerce 默认的 table.variations 样式
+ * 隐藏 WooCommerce 默认的变体选择下拉框和相关元素
  * 
- * 注意：不隐藏 .woocommerce-variation-add-to-cart，因为我们使用自定义模板覆盖了它
+ * 通过 CSS 隐藏：
+ * - table.variations（默认的下拉框变体选择器）
+ * - .reset_variations（Clear 按钮）
+ * - .woocommerce-variation.single_variation（单个变体信息显示区域）
+ * 
+ * 保持显示：
+ * - .single_variation_wrap、.woocommerce-variation-add-to-cart、.evershop-variation-add-to-cart
+ *   （自定义的 Add to Cart 容器，通过模板覆盖实现）
  */
 function evershop_hide_default_variation_table() {
     ?>
@@ -1277,20 +1299,19 @@ add_action('wp_head', 'evershop_hide_default_variation_table');
 
 /**
  * ============================================
- * EverShop 变体产品管理功能
+ * EverShop 变体产品系统 - 独立 URL 支持
  * ============================================
- */
-
-
-/**
- * ============================================
- * 第2步：启用独立 URL - 让 product_variation 有公开 URL
+ * 
+ * 修改 product_variation 的 post type 设置，使其支持：
+ * - 公开访问和独立 URL
+ * - 友好的 URL slug（父产品-slug-属性值）
+ * - 前端独立展示
  * ============================================
  */
 
 /**
  * 修改 product_variation 的 post type 设置
- * 使其支持公开访问和独立 URL
+ * 启用公开访问、独立 URL 和 rewrite 规则
  */
 function evershop_register_variation_post_type() {
     global $wp_post_types;
@@ -1442,45 +1463,18 @@ add_filter('post_row_actions', 'evershop_add_variation_view_link', 10, 2);
 
 /**
  * ============================================
- * EverShop 风格：直接使用 product_variation
+ * 变体属性选择器
  * ============================================
  * 
- * 对应 EverShop 逻辑：每个变体都是独立的完整产品
- * 直接使用 WooCommerce 的 product_variation，无需创建额外的 Simple Products
- * 
- * 核心概念：
- * - EverShop: product (variant_group_id = X) = 变体产品
- * - WooCommerce: product_variation = 变体产品
- * → 本质相同，直接使用即可！
- */
-
-/**
- * Product list display management
- * 
- * Note: product_variation should NOT be displayed in the main product list
- * because WooCommerce's list columns don't support variation display.
- * Variations should be managed through:
- * 1. Variable Product → Variations tab
- * 2. Direct edit via post.php?post={variation_id}&action=edit
- */
-
-/**
- * ============================================
- * EverShop 风格：变体属性选择器
- * ============================================
- * 
- * 在 WooCommerce Variations 面板的 "Generate variations" 上方
- * 添加属性选择器，用于指定哪些属性用于生成变体
- * 
- * 对应 EverShop 的 VariantsAndAttributes.tsx 逻辑：
+ * 在 WooCommerce Variations 面板添加属性选择器，功能：
  * - 显示所有可用于变体的属性
  * - 用户选择哪些属性用于生成变体
- * - 保存选择到 post meta
- * - 前端读取这个数据来正确高亮选中的变体选项
+ * - 保存选择到 post meta（_evershop_variant_attributes）
+ * - 前端读取数据以正确高亮选中的变体选项
  */
 
 /**
- * 在 Variations 面板顶部添加属性选择器
+ * 在 Variations 面板顶部添加属性选择器 UI
  */
 function evershop_add_variation_attribute_selector() {
     global $post, $product_object;
@@ -1668,7 +1662,12 @@ function evershop_add_variation_attribute_selector() {
 add_action('woocommerce_variable_product_before_variations', 'evershop_add_variation_attribute_selector', 5);
 
 /**
- * AJAX: 保存选中的变体属性
+ * AJAX 处理：保存选中的变体属性
+ * 
+ * 接收参数：
+ * - post_id: 产品 ID
+ * - attributes: 选中的属性数组
+ * - nonce: 安全验证
  */
 function evershop_save_variant_attributes_ajax() {
     check_ajax_referer('evershop_variant_attributes', 'nonce');
@@ -1911,18 +1910,25 @@ function evershop_handle_per_page_update() {
 add_action('admin_init', 'evershop_handle_per_page_update');
 
 /**
- * 禁用 WooCommerce 添加到购物车的成功消息
- * 使用自定义的 mini-cart 通知替代
+ * ============================================
+ * 自定义购物车通知系统
+ * ============================================
+ * 
+ * 禁用 WooCommerce 默认的通知消息，使用主题自定义的 mini-cart 通知
+ * 提供更好的用户体验和视觉一致性
+ */
+
+/**
+ * 禁用添加到购物车的默认成功消息
  */
 add_filter('wc_add_to_cart_message_html', '__return_empty_string');
 
 /**
- * 隐藏 WooCommerce 通知消息的 CSS
+ * 隐藏所有 WooCommerce 默认通知消息
  */
 function evershop_hide_woocommerce_messages() {
     ?>
     <style>
-        /* 隐藏 WooCommerce 默认消息 */
         .woocommerce-message,
         .woocommerce-info,
         .woocommerce-error {
@@ -1935,23 +1941,22 @@ add_action('wp_head', 'evershop_hide_woocommerce_messages', 999);
 
 /**
  * 修复 WooCommerce Admin 设置向导错误
- * Fix WooCommerce core-profiler.js "Cannot read properties of undefined (reading 'title')" error
+ * 
+ * 解决 core-profiler.js "Cannot read properties of undefined (reading 'title')" 错误
+ * 通过禁用 onboarding 功能和标记设置向导为已完成
  */
 function evershop_fix_wc_admin_profiler() {
-    // 方法1: 禁用 WooCommerce Admin 的 Profiler（推荐）
+    // 禁用 WooCommerce Admin 的 Onboarding 功能
     add_filter('woocommerce_admin_features', function($features) {
         return array_diff($features, ['onboarding']);
     }, 99);
     
-    // 方法2: 跳过设置向导
+    // 在访问 WooCommerce Admin 页面时，标记设置向导为已完成
     if (isset($_GET['page']) && $_GET['page'] === 'wc-admin') {
-        // 标记设置向导为已完成
         update_option('woocommerce_onboarding_profile', array(
             'completed' => true,
             'skipped' => true
         ));
-        
-        // 标记设置向导为已跳过
         update_option('woocommerce_task_list_complete', 'yes');
         update_option('woocommerce_task_list_hidden', 'yes');
         update_option('woocommerce_extended_task_list_hidden', 'yes');
@@ -1960,21 +1965,16 @@ function evershop_fix_wc_admin_profiler() {
 add_action('admin_init', 'evershop_fix_wc_admin_profiler', 1);
 
 /**
- * 完全禁用 WooCommerce Admin（可选）
- * 如果上面的修复不起作用，取消注释以下代码
- */
-// add_filter('woocommerce_admin_disabled', '__return_true');
-
-/**
- * 为产品搜索加载自定义模板
- * Force load search-product.php template for product searches
+ * 产品搜索使用自定义模板
+ * 
+ * 当用户搜索产品时，使用 search-product.php 模板替代默认的搜索模板
+ * 提供更好的产品搜索结果展示
  */
 function evershop_search_product_template($template) {
-    // 检查是否是搜索页面且搜索的是产品
     if (is_search() && get_query_var('post_type') === 'product') {
         $search_product_template = locate_template('search-product.php');
         
-        // 调试输出（开发时使用）
+        // 开发调试：管理员可通过 ?debug 参数查看模板加载情况
         if (current_user_can('manage_options') && isset($_GET['debug'])) {
             error_log('Search Product Template: ' . ($search_product_template ? 'Found' : 'Not Found'));
             error_log('Template Path: ' . $search_product_template);
@@ -1990,11 +1990,12 @@ function evershop_search_product_template($template) {
 add_filter('template_include', 'evershop_search_product_template', 999);
 
 /**
- * 将 /shop/ 页面重定向到主页
- * Redirect /shop/ page to homepage
+ * 将 WooCommerce Shop 页面重定向到主页
+ * 
+ * 使用主页作为产品展示页，不使用独立的 /shop/ 页面
+ * 301 永久重定向，对 SEO 友好
  */
 function evershop_redirect_shop_to_home() {
-    // 检查是否是商店页面（/shop/）
     if (function_exists('is_shop') && is_shop() && !is_search()) {
         wp_redirect(home_url('/'), 301);
         exit;
@@ -2003,15 +2004,25 @@ function evershop_redirect_shop_to_home() {
 add_action('template_redirect', 'evershop_redirect_shop_to_home', 1);
 
 /**
- * 加载 Checkout 调试工具
+ * 加载 Checkout 调试工具（开发环境使用）
+ * 
+ * 如果存在 debug-checkout.php 文件，则加载用于调试 Checkout 流程
  */
 if (file_exists(get_template_directory() . '/debug-checkout.php')) {
     require_once get_template_directory() . '/debug-checkout.php';
 }
 
 /**
- * 强制使用 Classic Checkout，禁用 WooCommerce Blocks Checkout
- * Force Classic Checkout, disable WooCommerce Blocks Checkout
+ * ============================================
+ * 强制 Checkout 页面使用 Classic Checkout
+ * ============================================
+ * 
+ * 禁用 WooCommerce Blocks Checkout，强制使用传统的 Classic Checkout
+ * 原因：主题的自定义 Checkout 模板基于 Classic Checkout 开发
+ */
+
+/**
+ * 设置新创建的 Checkout 页面默认内容为 Classic Checkout shortcode
  */
 add_filter('woocommerce_create_pages', function($pages) {
     if (isset($pages['checkout'])) {
@@ -2020,19 +2031,17 @@ add_filter('woocommerce_create_pages', function($pages) {
     return $pages;
 });
 
-// 移除 Blocks Checkout，使用 Classic Checkout Shortcode
+/**
+ * 检测并替换 Checkout 页面的 Block 内容为 Classic Checkout
+ */
 add_action('init', function() {
-    // 如果 checkout 页面使用了 Block，替换为 Classic Shortcode
     if (function_exists('wc_get_page_id')) {
         $checkout_page_id = wc_get_page_id('checkout');
         if ($checkout_page_id) {
             $post = get_post($checkout_page_id);
             if ($post && has_block('woocommerce/checkout', $post)) {
-                // 页面使用了 WooCommerce Blocks Checkout
-                // 我们需要更新页面内容为 Classic Shortcode
                 add_action('template_redirect', function() use ($checkout_page_id) {
                     if (function_exists('is_checkout') && function_exists('is_wc_endpoint_url') && is_checkout() && !is_wc_endpoint_url()) {
-                        // 临时更新页面内容并确保 shortcode 被处理
                         add_filter('the_content', function($content) {
                             if (function_exists('is_checkout') && is_checkout() && in_the_loop() && is_main_query()) {
                                 return do_shortcode('[woocommerce_checkout]');
@@ -2046,7 +2055,9 @@ add_action('init', function() {
     }
 }, 20);
 
-// 确保 Classic Checkout 模板被正确加载
+/**
+ * 确保使用主题的自定义 Checkout 模板
+ */
 add_filter('woocommerce_locate_template', function($template, $template_name, $template_path) {
     if ($template_name === 'checkout/form-checkout.php') {
         $custom_template = get_stylesheet_directory() . '/woocommerce/checkout/form-checkout.php';
@@ -2057,16 +2068,16 @@ add_filter('woocommerce_locate_template', function($template, $template_name, $t
     return $template;
 }, 10, 3);
 
-// 强制在 Checkout 页面直接输出 Classic Checkout 表单
+/**
+ * 强制 Checkout 页面输出 Classic Checkout 表单
+ * 如果页面内容包含 Block，则替换为 Classic shortcode
+ */
 add_action('wp', function() {
     if (function_exists('is_checkout') && function_exists('is_wc_endpoint_url') && is_checkout() && !is_wc_endpoint_url()) {
-        // 移除默认内容，使用 WooCommerce 的 checkout shortcode
         remove_filter('the_content', 'wpautop');
         add_filter('the_content', function($content) {
             if (function_exists('is_checkout') && is_checkout() && in_the_loop() && is_main_query()) {
-                // 检查是否包含 Block
                 if (has_blocks($content) || strpos($content, 'wc-block') !== false) {
-                    // 强制使用 Classic Checkout
                     ob_start();
                     echo do_shortcode('[woocommerce_checkout]');
                     return ob_get_clean();
@@ -2078,7 +2089,15 @@ add_action('wp', function() {
 }, 50);
 
 /**
- * Remove "Downloads" from My Account menu.
+ * ============================================
+ * My Account 页面自定义
+ * ============================================
+ */
+
+/**
+ * 从 My Account 菜单移除 "Downloads" 选项
+ * 
+ * 如果不提供数字下载产品，可移除此菜单项简化界面
  */
 function evershop_remove_downloads_endpoint( $items ) {
     if ( isset( $items['downloads'] ) ) {
@@ -2089,8 +2108,11 @@ function evershop_remove_downloads_endpoint( $items ) {
 add_filter( 'woocommerce_account_menu_items', 'evershop_remove_downloads_endpoint' );
 
 /**
- * My Account Orders: Professional Date Column Format
- * 专业化日期列展示格式
+ * 自定义订单日期列显示格式
+ * 
+ * 显示格式：
+ * - 第一行：日期（例如：23 Nov 2025）
+ * - 第二行：时间（例如：11:51）
  */
 function evershop_add_time_to_orders_date_column( $order ) {
     $order_timestamp = $order->get_date_created();
@@ -2098,11 +2120,9 @@ function evershop_add_time_to_orders_date_column( $order ) {
         return;
     }
     
-    // 格式化日期和时间
-    $date = $order_timestamp->date_i18n( 'j M Y' ); // 例如: 23 Nov 2025
-    $time = $order_timestamp->date_i18n( 'H:i' );   // 例如: 11:51
+    $date = $order_timestamp->date_i18n( 'j M Y' );
+    $time = $order_timestamp->date_i18n( 'H:i' );
     
-    // 输出专业格式
     echo '<div style="line-height: 1.5;">';
     echo '<time datetime="' . esc_attr( $order_timestamp->date( 'c' ) ) . '" style="display: block; font-weight: 500; color: #ffffff;">';
     echo esc_html( $date );
@@ -2115,14 +2135,16 @@ function evershop_add_time_to_orders_date_column( $order ) {
 add_action( 'woocommerce_my_account_my_orders_column_order-date', 'evershop_add_time_to_orders_date_column' );
 
 /**
- * My Account Orders: Professional Total Column Format
- * 专业化总价列展示格式
+ * 自定义订单总价列显示格式
+ * 
+ * 显示格式：
+ * - 第一行：总金额（加粗显示）
+ * - 第二行：商品数量（例如：3 items）
  */
 function evershop_format_order_total_column( $order ) {
     $total = $order->get_formatted_order_total();
     $item_count = $order->get_item_count();
     
-    // 输出专业格式
     echo '<div style="line-height: 1.5;">';
     echo '<span style="display: block; font-weight: 600; color: #ffffff; font-size: 1rem;">';
     echo wp_kses_post( $total );
@@ -2135,11 +2157,11 @@ function evershop_format_order_total_column( $order ) {
 add_action( 'woocommerce_my_account_my_orders_column_order-total', 'evershop_format_order_total_column' );
 
 /**
- * My Account Orders: Filter Actions
- * 只保留 "View" 按钮
+ * 过滤订单操作按钮，只保留 "View" 按钮
+ * 
+ * 移除其他操作按钮（如 Pay、Cancel 等），简化界面
  */
 function evershop_filter_my_account_orders_actions( $actions, $order ) {
-    // 只保留 'view' 操作
     $new_actions = array();
     
     if ( isset( $actions['view'] ) ) {
