@@ -1,103 +1,16 @@
 /**
  * EverShop Blocks - Editor Styles
+ * 
+ * 注意：所有内容模块已迁移到 EdgeX Content Builder
+ * - Key Benefits (关键优势)
+ * - Image + Text (图文模块)
+ * - Video Carousel (视频轮播)
+ * - Testimonials (客户评价)
+ * - Trust Badges (信任徽章)
+ * - Custom HTML (自定义HTML)
+ * 
+ * 不再使用 Gutenberg 区块系统
+ * 保留此文件以避免引用错误
  */
 
-/* Key Benefits Editor */
-.evershop-key-benefits-editor {
-    padding: 20px;
-    background: #f9f9f9;
-    border: 2px dashed #ddd;
-    border-radius: 8px;
-}
-
-.evershop-key-benefits-editor h3 {
-    margin-top: 0;
-    color: #2271b1;
-}
-
-.evershop-key-benefits-editor .benefits-grid {
-    margin-top: 20px;
-}
-
-.evershop-key-benefits-editor .benefit-card {
-    background: white;
-}
-
-/* Product Videos Editor */
-.evershop-product-videos-editor {
-    padding: 20px;
-    background: #f9f9f9;
-    border: 2px dashed #ddd;
-    border-radius: 8px;
-}
-
-.evershop-product-videos-editor .videos-list {
-    margin-top: 15px;
-}
-
-/* Testimonials Editor */
-.evershop-testimonials-editor {
-    padding: 20px;
-    background: #f9f9f9;
-    border: 2px dashed #ddd;
-    border-radius: 8px;
-}
-
-.evershop-testimonials-editor .testimonials-list {
-    margin-top: 15px;
-}
-
-/* Image + Text Editor */
-.evershop-image-text-editor {
-    padding: 20px;
-    background: #f9f9f9;
-    border: 2px dashed #ddd;
-    border-radius: 8px;
-}
-
-.evershop-image-text-editor .image-section,
-.evershop-image-text-editor .text-section {
-    min-height: 200px;
-}
-
-/* Trust Badges Editor */
-.evershop-trust-badges-editor {
-    padding: 20px;
-    background: #f9f9f9;
-    border: 2px dashed #ddd;
-    border-radius: 8px;
-}
-
-.evershop-trust-badges-editor h3 {
-    margin-top: 0;
-    color: #2271b1;
-}
-
-/* Custom HTML Editor */
-.evershop-custom-html-editor {
-    padding: 20px;
-    background: #f9f9f9;
-    border: 2px dashed #ddd;
-    border-radius: 8px;
-}
-
-.evershop-custom-html-editor h3 {
-    margin-top: 0;
-    color: #2271b1;
-}
-
-/* Common Styles */
-.components-panel__body .components-base-control__label {
-    font-weight: 600;
-    margin-bottom: 8px;
-}
-
-.wp-block-evershop-key-benefits,
-.wp-block-evershop-product-videos,
-.wp-block-evershop-testimonials,
-.wp-block-evershop-image-text,
-.wp-block-evershop-trust-badges,
-.wp-block-evershop-custom-html {
-    margin: 20px 0;
-}
-
+/* 功能已迁移到 EdgeX Content Builder */
