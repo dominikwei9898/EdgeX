@@ -447,31 +447,15 @@ if (get_post_type() === 'product_variation' && $product) {
 
         <!-- Full width sections - no page-width constraint -->
         
-
-        <!-- Key Benefits Component -->
-        <?php
-        $key_benefits = get_post_meta(get_the_ID(), '_espf_key_benefits', true);
-        if (!empty($key_benefits)) {
-            $benefits_array = json_decode($key_benefits, true);
-            if (!empty($benefits_array) && is_array($benefits_array)) :
-        ?>
-        <div class="key-benefits page-width">
-            <div class="benefits-grid">
-                <?php foreach ($benefits_array as $benefit) : ?>
-                    <div class="benefit-card">
-                        <?php if (!empty($benefit['icon'])) : ?>
-                            <div class="benefit-icon"><?php echo esc_html($benefit['icon']); ?></div>
-                        <?php endif; ?>
-                        <h3 class="benefit-title"><?php echo esc_html($benefit['title']); ?></h3>
-                        <p class="benefit-description"><?php echo esc_html($benefit['description']); ?></p>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-        </div>
+        <!-- 🎨 EdgeX 内容模块区域（Content Builder） -->
+        <!-- 支持图文模块、视频轮播、客户评价等，管理员可在产品编辑页面自由添加和排序 -->
         <?php 
-            endif;
+        // 加载 EdgeX Content Builder 系统
+        if (class_exists('EverShop_Content_Builder')) {
+            EverShop_Content_Builder::render_content_blocks(get_the_ID());
         }
         ?>
+
 
         <!-- ProductVideos Component -->
         <?php

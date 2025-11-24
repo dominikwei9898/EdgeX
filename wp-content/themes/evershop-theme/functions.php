@@ -2070,14 +2070,16 @@ add_filter('woocommerce_locate_template', function($template, $template_name, $t
 
 /**
  * 强制 Checkout 页面输出 Classic Checkout 表单
- * 如果页面内容包含 Block，则替换为 Classic shortcode
+ * 如果页面内容包含 Checkout Block，则替换为 Classic shortcode
+ * 注意：只针对 Checkout 页面，不影响其他页面（如购物车、我的账户等）
  */
 add_action('wp', function() {
     if (function_exists('is_checkout') && function_exists('is_wc_endpoint_url') && is_checkout() && !is_wc_endpoint_url()) {
         remove_filter('the_content', 'wpautop');
         add_filter('the_content', function($content) {
             if (function_exists('is_checkout') && is_checkout() && in_the_loop() && is_main_query()) {
-                if (has_blocks($content) || strpos($content, 'wc-block') !== false) {
+                // 只替换 Checkout Block，不影响其他 WooCommerce blocks
+                if (has_block('woocommerce/checkout', $content) || strpos($content, 'wp-block-woocommerce-checkout') !== false) {
                     ob_start();
                     echo do_shortcode('[woocommerce_checkout]');
                     return ob_get_clean();

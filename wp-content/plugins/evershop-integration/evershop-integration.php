@@ -1,13 +1,13 @@
 <?php
 /**
- * Plugin Name: EverShop Integration for WooCommerce
- * Plugin URI: https://gitlab.com/mitey30054/evershop-wp
- * Description: 为 WooCommerce 添加 EverShop 风格的产品字段和管理功能。包含 Badge、Features、Key Benefits、Videos、Testimonials 等自定义字段的 Meta Boxes 和前端显示支持。
- * Version: 1.0.1
+ * Plugin Name: EdgeX Content Builder
+ * Plugin URI: https://github.com/dominikwei9898/EdgeX
+ * Description: 为 EdgeX 主题和 WooCommerce 产品页面添加灵活的内容模块构建器。支持图文模块、视频轮播、客户评价、关键优势等多种内容块，无需第三方插件即可使用。
+ * Version: 2.0.0
  * Author: Dominik Wei
- * Author URI: https://evershop.com
+ * Author URI: https://github.com/dominikwei9898
  * License: MIT
- * Text Domain: evershop-integration
+ * Text Domain: edgex-content-builder
  * Requires at least: 6.0
  * Requires PHP: 8.0
  * WC requires at least: 8.0
@@ -20,7 +20,12 @@ if (!defined('ABSPATH')) {
 }
 
 // 定义插件常量
-define('EVERSHOP_INTEGRATION_VERSION', '1.0.1');
+define('EVERSHOP_CONTENT_BUILDER_VERSION', '2.0.0');
+define('EVERSHOP_CONTENT_BUILDER_DIR', plugin_dir_path(__FILE__));
+define('EVERSHOP_CONTENT_BUILDER_URL', plugin_dir_url(__FILE__));
+
+// 兼容性常量（向后兼容）
+define('EVERSHOP_INTEGRATION_VERSION', '2.0.0');
 define('EVERSHOP_INTEGRATION_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('EVERSHOP_INTEGRATION_PLUGIN_URL', plugin_dir_url(__FILE__));
 
@@ -87,6 +92,7 @@ function evershop_integration_init() {
     require_once EVERSHOP_INTEGRATION_PLUGIN_DIR . 'includes/class-evershop-cors.php';
     require_once EVERSHOP_INTEGRATION_PLUGIN_DIR . 'includes/class-evershop-variant-system.php';
     require_once EVERSHOP_INTEGRATION_PLUGIN_DIR . 'includes/class-evershop-variation-gallery.php';
+    require_once EVERSHOP_INTEGRATION_PLUGIN_DIR . 'includes/class-evershop-content-builder.php';
     
     // 初始化类
     EverShop_API::init();

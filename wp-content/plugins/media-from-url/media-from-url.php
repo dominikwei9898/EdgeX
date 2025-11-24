@@ -3,7 +3,7 @@
  * Plugin Name: Media From URL
  * Plugin URI: https://example.com/media-from-url
  * Description: 允许通过 URL 直接添加图片和视频到 WordPress 媒体库
- * Version: 1.0.2
+ * Version: 1.0.3
  * Author: dominikwei
  * Text Domain: media-from-url
  * Domain Path: /languages
@@ -45,7 +45,7 @@ class Media_From_URL {
             'media-from-url-js',
             plugins_url('assets/js/media-from-url.js', __FILE__),
             array('jquery'),
-            '1.0.2',
+            '1.0.3',
             true
         );
         
@@ -53,7 +53,7 @@ class Media_From_URL {
             'media-from-url-css',
             plugins_url('assets/css/media-from-url.css', __FILE__),
             array(),
-            '1.0.1'
+            '1.0.3'
         );
         
         // 传递 AJAX URL 和 nonce
@@ -206,17 +206,66 @@ class Media_From_URL {
             return;
         }
         
+        // 触发自定义动作，让其他插件可以响应
+        do_action('media_from_url_uploaded', $id, $url);
+        
         // 获取附件信息
         $attachment = get_post($id);
         $attachment_url = wp_get_attachment_url($id);
+        $attachment_metadata = wp_get_attachment_metadata($id);
         
-        wp_send_json_success(array(
+        // 构建完整的附件数据
+        $attachment_data = array(
             'message' => '上传成功！',
             'id' => $id,
             'url' => $attachment_url,
             'title' => $attachment->post_title,
-            'type' => wp_attachment_is_image($id) ? 'image' : 'video'
-        ));
+            'filename' => basename($attachment_url),
+            'type' => wp_attachment_is_image($id) ? 'image' : 'video',
+            'mime_type' => get_post_mime_type($id),
+            'date' => $attachment->post_date,
+            'modified' => $attachment->post_modified,
+        );
+        
+        // 如果是图片，添加缩略图信息
+        if (wp_attachment_is_image($id)) {
+            $attachment_data['sizes'] = array();
+            $image_sizes = get_intermediate_image_sizes();
+            
+            foreach ($image_sizes as $size) {
+                $image = wp_get_attachment_image_src($id, $size);
+                if ($image) {
+                    $attachment_data['sizes'][$size] = array(
+                        'url' => $image[0],
+                        'width' => $image[1],
+                        'height' => $image[2],
+                    );
+                }
+            }
+            
+            // 添加完整尺寸
+            $full_image = wp_get_attachment_image_src($id, 'full');
+            if ($full_image) {
+                $attachment_data['sizes']['full'] = array(
+                    'url' => $full_image[0],
+                    'width' => $full_image[1],
+                    'height' => $full_image[2],
+                );
+            }
+            
+            // 添加缩略图 URL
+            $thumbnail = wp_get_attachment_image_src($id, 'thumbnail');
+            if ($thumbnail) {
+                $attachment_data['thumbnail'] = $thumbnail[0];
+            }
+        }
+        
+        // 添加元数据
+        if ($attachment_metadata) {
+            $attachment_data['metadata'] = $attachment_metadata;
+        }
+        
+        wp_send_json_success($attachment_data);
     }
 }
 

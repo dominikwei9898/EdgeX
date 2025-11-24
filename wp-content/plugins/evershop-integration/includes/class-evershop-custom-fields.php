@@ -28,51 +28,37 @@ class EverShop_Custom_Fields {
         
         // 添加管理脚本和样式
         add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
+        
+        // AJAX 保存 Product Features
+        add_action('wp_ajax_save_product_features', [$this, 'ajax_save_product_features']);
     }
     
     /**
      * 添加产品元数据框
+     * 
+     * 注意：Videos、Testimonials、Key Benefits 已整合到 EdgeX Content Builder
+     * 保留 Product Features、Badge 和 SubHeading 作为产品基本信息
      */
     public function add_meta_boxes() {
-        add_meta_box(
-            'evershop_product_videos',
-            '📹 Product Videos (EverShop)',
-            [$this, 'render_videos_metabox'],
-            'product',
-            'normal',
-            'high'
-        );
-        
-        add_meta_box(
-            'evershop_product_testimonials',
-            '💬 Customer Testimonials (EverShop)',
-            [$this, 'render_testimonials_metabox'],
-            'product',
-            'normal',
-            'high'
-        );
-        
+        // ✅ Product Features 保持独立显示（在价格下方）
         add_meta_box(
             'evershop_product_features',
-            '✨ Product Features (EverShop)',
+            '✨ Product Features',
             [$this, 'render_features_metabox'],
             'product',
             'normal',
             'high'
         );
         
-        add_meta_box(
-            'evershop_key_benefits',
-            '🎯 Key Benefits (EverShop)',
-            [$this, 'render_key_benefits_metabox'],
-            'product',
-            'normal',
-            'high'
-        );
+        // ✅ 已整合到 EdgeX Content Builder - 不再显示独立的 Meta Boxes
+        // add_meta_box('evershop_product_videos', ...);
+        // add_meta_box('evershop_product_testimonials', ...);
+        // add_meta_box('evershop_key_benefits', ...);
         
+        // 保留产品基本信息字段
         add_meta_box(
             'evershop_product_badge',
-            '🏷️ Product Badge (EverShop)',
+            '🏷️ Product Badge',
             [$this, 'render_badge_metabox'],
             'product',
             'side',
@@ -81,7 +67,7 @@ class EverShop_Custom_Fields {
         
         add_meta_box(
             'evershop_product_extras',
-            '📝 Additional Info (EverShop)',
+            '📝 SubHeading',
             [$this, 'render_extras_metabox'],
             'product',
             'side',
@@ -251,6 +237,8 @@ class EverShop_Custom_Fields {
      * 渲染产品特性元数据框
      */
     public function render_features_metabox($post) {
+        wp_nonce_field('save_product_features', 'product_features_nonce');
+        
         $features = get_post_meta($post->ID, '_espf_features', true);
         $features_array = $features ? json_decode($features, true) : [];
         
@@ -266,17 +254,44 @@ class EverShop_Custom_Fields {
                 ?>
             </div>
             
-            <button type="button" class="button button-secondary" id="add-feature-btn">
-                + Add Feature
-            </button>
+            <div style="margin-top: 15px; display: flex; align-items: center; gap: 15px;">
+                <button type="button" class="button button-secondary" id="add-feature-btn">
+                    + Add Feature
+                </button>
+                
+                <button type="button" class="button button-primary" id="save-features-btn" data-post-id="<?php echo $post->ID; ?>">
+                    💾 Save Features
+                </button>
+                
+                <span id="features-save-status" style="display: none; padding: 5px 10px; border-radius: 3px;"></span>
+            </div>
             
-            <p class="description">Add product features (e.g., "High Protein", "Sugar Free"). These will be displayed with checkmark icons.</p>
+            <p class="description" style="margin-top: 10px;">Add product features (e.g., "High Protein", "Sugar Free"). These will be displayed with checkmark icons.</p>
         </div>
+        
+        <style>
+        .features-save-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .features-save-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .features-save-loading {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        </style>
         
         <script>
         jQuery(document).ready(function($) {
             let featureIndex = <?php echo count($features_array); ?>;
             
+            // 添加新特性
             $('#add-feature-btn').on('click', function() {
                 const html = `
                     <div class="evershop-feature-row" style="margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
@@ -288,8 +303,68 @@ class EverShop_Custom_Fields {
                 featureIndex++;
             });
             
+            // 移除特性
             $(document).on('click', '.remove-feature-btn', function() {
                 $(this).closest('.evershop-feature-row').remove();
+            });
+            
+            // AJAX 保存特性
+            $('#save-features-btn').on('click', function() {
+                const $btn = $(this);
+                const $status = $('#features-save-status');
+                const postId = $btn.data('post-id');
+                
+                // 收集所有特性数据
+                const features = [];
+                $('input[name="product_features[]"]').each(function() {
+                    const value = $(this).val().trim();
+                    if (value) {
+                        features.push(value);
+                    }
+                });
+                
+                // 显示加载状态
+                $btn.prop('disabled', true).text('⏳ Saving...');
+                $status.removeClass('features-save-success features-save-error')
+                       .addClass('features-save-loading')
+                       .text('Saving...')
+                       .show();
+                
+                // 发送 AJAX 请求
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'save_product_features',
+                        post_id: postId,
+                        features: features,
+                        nonce: $('#product_features_nonce').val()
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            $status.removeClass('features-save-loading features-save-error')
+                                   .addClass('features-save-success')
+                                   .text('✓ ' + response.data.message);
+                            
+                            // 3秒后自动隐藏成功消息
+                            setTimeout(function() {
+                                $status.fadeOut();
+                            }, 3000);
+                        } else {
+                            $status.removeClass('features-save-loading features-save-success')
+                                   .addClass('features-save-error')
+                                   .text('✗ ' + response.data.message);
+                        }
+                    },
+                    error: function() {
+                        $status.removeClass('features-save-loading features-save-success')
+                               .addClass('features-save-error')
+                               .text('✗ Save failed. Please try again.');
+                    },
+                    complete: function() {
+                        $btn.prop('disabled', false).text('💾 Save Features');
+                    }
+                });
             });
         });
         </script>
@@ -301,95 +376,6 @@ class EverShop_Custom_Fields {
         <div class="evershop-feature-row" style="margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
             <input type="text" name="product_features[]" value="<?php echo esc_attr($feature); ?>" class="widefat" placeholder="e.g., High Protein Content" style="margin-bottom: 5px;">
             <button type="button" class="button button-small remove-feature-btn" style="color: #dc3232;">Remove</button>
-        </div>
-        <?php
-    }
-    
-    /**
-     * 渲染 Key Benefits 元数据框
-     */
-    public function render_key_benefits_metabox($post) {
-        $benefits = get_post_meta($post->ID, '_espf_key_benefits', true);
-        $benefits_array = $benefits ? json_decode($benefits, true) : [];
-        
-        ?>
-        <div class="evershop-benefits-wrapper">
-            <p class="description" style="margin-bottom: 15px;">
-                Add key benefits for your product. Each benefit includes an icon, title, and description.
-                These will be displayed in a 3-column grid below the product description.
-            </p>
-            
-            <div id="evershop-benefits-list">
-                <?php
-                if (!empty($benefits_array)) {
-                    foreach ($benefits_array as $index => $benefit) {
-                        $this->render_benefit_row($index, $benefit);
-                    }
-                }
-                ?>
-            </div>
-            
-            <button type="button" class="button button-secondary" id="add-benefit-btn">
-                + Add Key Benefit
-            </button>
-        </div>
-        
-        <script>
-        jQuery(document).ready(function($) {
-            let benefitIndex = <?php echo count($benefits_array); ?>;
-            
-            $('#add-benefit-btn').on('click', function() {
-                const html = `
-                    <div class="evershop-benefit-row" style="margin: 15px 0; padding: 15px; border: 1px solid #ddd; border-radius: 4px; background: #f9f9f9;">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-                            <div>
-                                <label><strong>Icon/Emoji:</strong></label>
-                                <input type="text" name="benefit_icon[]" value="" class="widefat" placeholder="e.g., 💪 or 🎯">
-                            </div>
-                            <div>
-                                <label><strong>Title:</strong></label>
-                                <input type="text" name="benefit_title[]" value="" class="widefat" placeholder="e.g., Build Muscle">
-                            </div>
-                        </div>
-                        <div style="margin-bottom: 10px;">
-                            <label><strong>Description:</strong></label>
-                            <textarea name="benefit_description[]" class="widefat" rows="3" placeholder="Describe the benefit..."></textarea>
-                        </div>
-                        <button type="button" class="button button-small remove-benefit-btn" style="color: #dc3232;">Remove</button>
-                    </div>
-                `;
-                $('#evershop-benefits-list').append(html);
-                benefitIndex++;
-            });
-            
-            $(document).on('click', '.remove-benefit-btn', function() {
-                if (confirm('Remove this benefit?')) {
-                    $(this).closest('.evershop-benefit-row').remove();
-                }
-            });
-        });
-        </script>
-        <?php
-    }
-    
-    private function render_benefit_row($index, $benefit) {
-        ?>
-        <div class="evershop-benefit-row" style="margin: 15px 0; padding: 15px; border: 1px solid #ddd; border-radius: 4px; background: #f9f9f9;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-                <div>
-                    <label><strong>Icon/Emoji:</strong></label>
-                    <input type="text" name="benefit_icon[]" value="<?php echo esc_attr($benefit['icon'] ?? ''); ?>" class="widefat" placeholder="e.g., 💪 or 🎯">
-                </div>
-                <div>
-                    <label><strong>Title:</strong></label>
-                    <input type="text" name="benefit_title[]" value="<?php echo esc_attr($benefit['title'] ?? ''); ?>" class="widefat" placeholder="e.g., Build Muscle">
-                </div>
-            </div>
-            <div style="margin-bottom: 10px;">
-                <label><strong>Description:</strong></label>
-                <textarea name="benefit_description[]" class="widefat" rows="3" placeholder="Describe the benefit..."><?php echo esc_textarea($benefit['description'] ?? ''); ?></textarea>
-            </div>
-            <button type="button" class="button button-small remove-benefit-btn" style="color: #dc3232;">Remove</button>
         </div>
         <?php
     }
@@ -420,8 +406,7 @@ class EverShop_Custom_Fields {
             <p>
                 <label for="badge_color"><strong>Badge Color:</strong></label><br>
                 <select id="badge_color_preset" name="badge_color" class="widefat" style="margin-bottom: 10px;">
-                    <option value="#fe0000" <?php selected($badge_color, '#fe0000'); ?>>🔴 Red (Jay Cutler)</option>
-                    <option value="#ef4444" <?php selected($badge_color, '#ef4444'); ?>>🔴 Red (Alternative)</option>
+                    <option value="#fe0000" <?php selected($badge_color, '#fe0000'); ?>>🔴 Red</option>
                     <option value="#f97316" <?php selected($badge_color, '#f97316'); ?>>🟠 Orange</option>
                     <option value="#eab308" <?php selected($badge_color, '#eab308'); ?>>🟡 Yellow</option>
                     <option value="#22c55e" <?php selected($badge_color, '#22c55e'); ?>>🟢 Green</option>
@@ -581,32 +566,6 @@ class EverShop_Custom_Fields {
             delete_post_meta($post_id, '_espf_features');
         }
         
-        // 保存 Key Benefits
-        if (isset($_POST['benefit_title'])) {
-            $benefits = [];
-            $icons = $_POST['benefit_icon'];
-            $titles = $_POST['benefit_title'];
-            $descriptions = $_POST['benefit_description'];
-            
-            for ($i = 0; $i < count($titles); $i++) {
-                if (!empty($titles[$i])) {
-                    $benefits[] = [
-                        'icon' => sanitize_text_field($icons[$i]),
-                        'title' => sanitize_text_field($titles[$i]),
-                        'description' => sanitize_textarea_field($descriptions[$i])
-                    ];
-                }
-            }
-            
-            if (!empty($benefits)) {
-                update_post_meta($post_id, '_espf_key_benefits', wp_json_encode($benefits));
-            } else {
-                delete_post_meta($post_id, '_espf_key_benefits');
-            }
-        } else {
-            delete_post_meta($post_id, '_espf_key_benefits');
-        }
-        
         // 保存徽章（使用 _espf_ 前缀与主题一致）
         $badge_enabled = isset($_POST['badge_enabled']) ? 'yes' : 'no';
         update_post_meta($post_id, '_espf_badge_enabled', $badge_enabled);
@@ -688,26 +647,6 @@ class EverShop_Custom_Fields {
             ]
         ]);
         
-        // 注册 Key Benefits
-        register_rest_field('product', 'key_benefits', [
-            'get_callback' => function($object) {
-                $benefits = get_post_meta($object['id'], '_espf_key_benefits', true);
-                return $benefits ? json_decode($benefits, true) : [];
-            },
-            'schema' => [
-                'description' => 'Product key benefits',
-                'type' => 'array',
-                'items' => [
-                    'type' => 'object',
-                    'properties' => [
-                        'icon' => ['type' => 'string'],
-                        'title' => ['type' => 'string'],
-                        'description' => ['type' => 'string']
-                    ]
-                ]
-            ]
-        ]);
-        
         // 注册徽章（对应 EverShop 的 badge_enabled, badge_text, badge_color）
         register_rest_field('product', 'badge', [
             'get_callback' => function($object) {
@@ -786,5 +725,49 @@ class EverShop_Custom_Fields {
         
         wp_enqueue_style('wp-color-picker');
         wp_enqueue_script('wp-color-picker');
+    }
+    
+    /**
+     * AJAX 保存产品特性
+     */
+    public function ajax_save_product_features() {
+        // 验证 nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'save_product_features')) {
+            wp_send_json_error([
+                'message' => 'Security check failed.'
+            ]);
+            return;
+        }
+        
+        // 验证权限
+        $post_id = intval($_POST['post_id']);
+        if (!current_user_can('edit_post', $post_id)) {
+            wp_send_json_error([
+                'message' => 'You do not have permission to edit this product.'
+            ]);
+            return;
+        }
+        
+        // 获取并验证数据
+        $features = isset($_POST['features']) ? $_POST['features'] : [];
+        
+        // 过滤空值
+        $features = array_filter($features, function($feature) {
+            return !empty(trim($feature));
+        });
+        
+        // 重新索引数组
+        $features = array_values($features);
+        
+        // 保存到数据库
+        $json_features = json_encode($features);
+        update_post_meta($post_id, '_espf_features', $json_features);
+        
+        // 返回成功响应
+        wp_send_json_success([
+            'message' => 'Product features saved successfully!',
+            'count' => count($features),
+            'features' => $features
+        ]);
     }
 }

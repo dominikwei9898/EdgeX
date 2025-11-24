@@ -158,6 +158,103 @@ jQuery(document).ready(function($) {
         }
     }
     
+    // 刷新媒体库
+    function refreshMediaLibrary(uploadData) {
+        console.log('开始刷新媒体库...');
+        
+        // 方法 1: 如果在 WordPress 媒体模态框中
+        if (typeof wp !== 'undefined' && wp.media && wp.media.frame) {
+            console.log('检测到 WordPress 媒体模态框');
+            
+            // 尝试多种刷新方法
+            var refreshed = false;
+            
+            // 方法 1.1: 刷新当前内容视图
+            try {
+                var frame = wp.media.frame;
+                var library = frame.state().get('library');
+                
+                if (library) {
+                    console.log('使用方法 1.1: 刷新 library');
+                    // 添加新上传的附件到集合
+                    var attachment = wp.media.attachment(uploadData.id);
+                    attachment.fetch().done(function() {
+                        library.add(attachment);
+                        refreshed = true;
+                        console.log('媒体库刷新成功 - 添加了新附件');
+                    });
+                }
+            } catch (e) {
+                console.log('方法 1.1 失败:', e);
+            }
+            
+            // 方法 1.2: 强制重新获取
+            if (!refreshed) {
+                try {
+                    var content = wp.media.frame.content.get();
+                    if (content && content.collection) {
+                        console.log('使用方法 1.2: 强制重新获取');
+                        content.collection.props.set({ignore: (+ new Date())});
+                        content.options.selection.reset();
+                        refreshed = true;
+                        console.log('媒体库刷新成功 - 强制重新获取');
+                    }
+                } catch (e) {
+                    console.log('方法 1.2 失败:', e);
+                }
+            }
+            
+            // 方法 1.3: 直接操作 library props
+            if (!refreshed) {
+                try {
+                    if (wp.media.frame.library) {
+                        console.log('使用方法 1.3: 操作 library props');
+                        wp.media.frame.library.props.set({ignore: (+ new Date())});
+                        refreshed = true;
+                        console.log('媒体库刷新成功 - library props');
+                    }
+                } catch (e) {
+                    console.log('方法 1.3 失败:', e);
+                }
+            }
+            
+            // 如果所有方法都失败，给出提示但不重新加载页面
+            if (!refreshed) {
+                console.log('所有刷新方法失败，提示用户手动刷新');
+                showMessage('上传成功！请手动刷新媒体库查看新文件', 'success');
+            }
+        }
+        // 方法 2: 如果在媒体库列表页面
+        else if (window.location.href.indexOf('upload.php') > -1 || 
+                 window.location.href.indexOf('media-new.php') > -1) {
+            console.log('检测到媒体库列表页面，即将刷新页面');
+            // 直接刷新页面以显示新上传的媒体
+            setTimeout(function() {
+                location.reload();
+            }, 500);
+        }
+        // 方法 3: 其他页面（可能是文章编辑器）
+        else {
+            console.log('其他页面环境');
+            // 尝试触发自定义事件，让其他脚本知道有新媒体上传
+            $(document).trigger('mediaFromUrlUploaded', [uploadData]);
+            
+            // 如果页面上有 wp.media，尝试刷新其缓存
+            if (typeof wp !== 'undefined' && wp.media) {
+                try {
+                    // 清除 wp.media 的附件缓存
+                    if (wp.media.model && wp.media.model.Attachments) {
+                        console.log('清除附件缓存');
+                        var attachment = wp.media.attachment(uploadData.id);
+                        attachment.fetch();
+                    }
+                } catch (e) {
+                    console.log('清除缓存失败:', e);
+                }
+            }
+        }
+    }
+    
     // 上传文件
     function uploadFromUrl(url) {
         $submitBtn.prop('disabled', true).text(mediaFromUrlData.strings.uploading);
@@ -177,40 +274,11 @@ jQuery(document).ready(function($) {
                     
                     console.log('上传成功:', response.data);
                     
-                    // 如果在 WordPress 媒体库模态框中
-                    if (typeof wp !== 'undefined' && wp.media && wp.media.frame) {
-                        setTimeout(function() {
-                            $modal.fadeOut(200);
-                            // 刷新媒体库 - 安全检查
-                            try {
-                                var content = wp.media.frame.content.get();
-                                if (content && content.collection && content.collection.props) {
-                                    content.collection.props.set({ignore: (+ new Date())});
-                                    if (content.options && content.options.selection) {
-                                        content.options.selection.reset();
-                                    }
-                                } else if (wp.media.frame.library && wp.media.frame.library.props) {
-                                    wp.media.frame.library.props.set({ignore: (+ new Date())});
-                                }
-                            } catch (e) {
-                                console.log('刷新媒体库失败:', e);
-                                // 如果刷新失败，直接重新加载页面
-                                location.reload();
-                            }
-                        }, 1000);
-                    }
-                    // 如果在媒体库列表页面
-                    else if (window.location.href.indexOf('upload.php') > -1) {
-                        setTimeout(function() {
-                            location.reload();
-                        }, 1500);
-                    }
-                    // 其他页面
-                    else {
-                        setTimeout(function() {
-                            $modal.fadeOut(200);
-                        }, 1500);
-                    }
+                    // 延迟关闭模态框，让用户看到成功消息
+                    setTimeout(function() {
+                        $modal.fadeOut(200);
+                        refreshMediaLibrary(response.data);
+                    }, 800);
                 } else {
                     showMessage(response.data.message || mediaFromUrlData.strings.error, 'error');
                 }
