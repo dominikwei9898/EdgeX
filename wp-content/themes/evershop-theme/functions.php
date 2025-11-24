@@ -263,7 +263,7 @@ function evershop_scripts() {
         ));
         
         // 在产品分类/商店页面加载产品归档脚本
-        if (is_shop() || is_product_category() || is_product_tag() || is_product_taxonomy()) {
+        if (function_exists('is_shop') && function_exists('is_product_category') && function_exists('is_product_tag') && function_exists('is_product_taxonomy') && (is_shop() || is_product_category() || is_product_tag() || is_product_taxonomy())) {
             wp_enqueue_script(
                 'evershop-product-archive',
                 get_template_directory_uri() . '/assets/js/product-archive.js',
@@ -274,7 +274,7 @@ function evershop_scripts() {
         }
         
         // 在结账页面添加深色主题应用脚本
-        if (is_checkout()) {
+        if (function_exists('is_checkout') && is_checkout()) {
             wp_add_inline_script('jquery', "
                 jQuery(document).ready(function($) {
                     // 确保结账页面使用深色主题
@@ -287,7 +287,7 @@ function evershop_scripts() {
         }
     }
     
-    if (is_product()) {
+    if (function_exists('is_product') && is_product()) {
         wp_enqueue_style('evershop-product-style', get_template_directory_uri() . '/product-styles.css', array(), evershop_get_asset_version('/product-styles.css'));
         
         wp_enqueue_style(
@@ -1013,7 +1013,8 @@ add_action('widgets_init', 'evershop_register_widgets');
  * 在产品分类页面添加筛选器（仿照源网站 facets-container）
  */
 function evershop_product_filters() {
-    if (!is_product_category() && !is_shop()) {
+    // 检查 WooCommerce 函数是否存在
+    if (!function_exists('is_product_category') || !function_exists('is_shop') || (!is_product_category() && !is_shop())) {
         return;
     }
     
@@ -1154,7 +1155,8 @@ function evershop_product_filters() {
  * 应用产品筛选
  */
 function evershop_apply_product_filters($query) {
-    if (!is_admin() && $query->is_main_query() && (is_product_category() || is_shop())) {
+    // 检查 WooCommerce 函数是否存在
+    if (!is_admin() && $query->is_main_query() && function_exists('is_product_category') && function_exists('is_shop') && (is_product_category() || is_shop())) {
         $meta_query = $query->get('meta_query') ?: array();
         $tax_query = $query->get('tax_query') ?: array();
         
@@ -1205,7 +1207,8 @@ add_action('pre_get_posts', 'evershop_apply_product_filters');
  * 在分类页面输出筛选器表单
  */
 function evershop_output_filter_form() {
-    if (!is_product_category() && !is_shop()) {
+    // 检查 WooCommerce 函数是否存在
+    if (!function_exists('is_product_category') || !function_exists('is_shop') || (!is_product_category() && !is_shop())) {
         return;
     }
     
@@ -1992,7 +1995,7 @@ add_filter('template_include', 'evershop_search_product_template', 999);
  */
 function evershop_redirect_shop_to_home() {
     // 检查是否是商店页面（/shop/）
-    if (is_shop() && !is_search()) {
+    if (function_exists('is_shop') && is_shop() && !is_search()) {
         wp_redirect(home_url('/'), 301);
         exit;
     }
@@ -2028,10 +2031,10 @@ add_action('init', function() {
                 // 页面使用了 WooCommerce Blocks Checkout
                 // 我们需要更新页面内容为 Classic Shortcode
                 add_action('template_redirect', function() use ($checkout_page_id) {
-                    if (is_checkout() && !is_wc_endpoint_url()) {
+                    if (function_exists('is_checkout') && function_exists('is_wc_endpoint_url') && is_checkout() && !is_wc_endpoint_url()) {
                         // 临时更新页面内容并确保 shortcode 被处理
                         add_filter('the_content', function($content) {
-                            if (is_checkout() && in_the_loop() && is_main_query()) {
+                            if (function_exists('is_checkout') && is_checkout() && in_the_loop() && is_main_query()) {
                                 return do_shortcode('[woocommerce_checkout]');
                             }
                             return $content;
@@ -2056,11 +2059,11 @@ add_filter('woocommerce_locate_template', function($template, $template_name, $t
 
 // 强制在 Checkout 页面直接输出 Classic Checkout 表单
 add_action('wp', function() {
-    if (is_checkout() && !is_wc_endpoint_url()) {
+    if (function_exists('is_checkout') && function_exists('is_wc_endpoint_url') && is_checkout() && !is_wc_endpoint_url()) {
         // 移除默认内容，使用 WooCommerce 的 checkout shortcode
         remove_filter('the_content', 'wpautop');
         add_filter('the_content', function($content) {
-            if (is_checkout() && in_the_loop() && is_main_query()) {
+            if (function_exists('is_checkout') && is_checkout() && in_the_loop() && is_main_query()) {
                 // 检查是否包含 Block
                 if (has_blocks($content) || strpos($content, 'wc-block') !== false) {
                     // 强制使用 Classic Checkout
