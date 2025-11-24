@@ -71,33 +71,33 @@ class EverShop_Content_Builder {
                 'description' => '支持单图/多图+文字，灵活布局',
                 'fields' => array(
                     'title' => array('type' => 'text', 'label' => '模块名称（仅后台显示）', 'placeholder' => 'Banner', 'description' => '此标题仅用于后台识别模块，不会显示在前端'),
-                    'image' => array('type' => 'image', 'label' => '图片 (桌面端)'),
-                    'mobile_image' => array('type' => 'image', 'label' => '图片 (移动端，可选)', 'placeholder' => '留空则使用桌面端图片'),
+                    'images' => array(
+                        'type' => 'repeater',
+                        'label' => '图片列表',
+                        'button_label' => '+ 添加图片',
+                        'description' => '支持单张或多张图片，多张图片将显示为横向画廊',
+                        'fields' => array(
+                            'image' => array('type' => 'image', 'label' => '图片 (桌面端)'),
+                            'mobile_image' => array('type' => 'image', 'label' => '图片 (移动端，可选)', 'placeholder' => '留空则使用桌面端图片'),
+                            'alt_text' => array('type' => 'text', 'label' => '图片描述', 'placeholder' => 'Product Image'),
+                        )
+                    ),
                     'image_position' => array(
                         'type' => 'select', 
                         'label' => '图片位置', 
                         'options' => array(
+                            'full' => '全宽（图片占满容器）',
                             'left' => '左侧（图文左右布局）',
-                            'right' => '右侧（图文左右布局）',
-                            'full' => '全宽（图片占满容器）'
+                            'right' => '右侧（图文左右布局）'
                         ), 
-                        'default' => 'left'
+                        'default' => 'full'
                     ),
-                    'product_images' => array(
-                        'type' => 'repeater',
-                        'label' => '产品图片',
-                        'button_label' => '+ 添加更多图片',
-                        'description' => '添加多张图片将显示为横向画廊',
-                        'fields' => array(
-                            'image' => array('type' => 'image', 'label' => '产品图片 (桌面端)'),
-                            'mobile_image' => array('type' => 'image', 'label' => '产品图片 (移动端，可选)', 'placeholder' => '留空则使用桌面端图片'),
-                            'alt_text' => array('type' => 'text', 'label' => '图片描述', 'placeholder' => 'Product Image'),
-                        )
-                    ),
-                    'button_text' => array('type' => 'text', 'label' => '按钮文字', 'placeholder' => 'Supplement Facts'),
+                    'content_title' => array('type' => 'text', 'label' => '文案标题', 'placeholder' => '模块标题'),
+                    'content_text' => array('type' => 'textarea', 'label' => '文案内容', 'placeholder' => '模块描述文字'),
+                    'button_text' => array('type' => 'text', 'label' => '按钮文字', 'placeholder' => 'Learn More'),
                     'button_action' => array(
                         'type' => 'select',
-                        'label' => '点击图片/按钮动作',
+                        'label' => '点击按钮动作',
                         'options' => array(
                             'none' => '无动作',
                             'link' => '跳转链接',
@@ -805,4 +805,5 @@ class EverShop_Content_Builder {
 
 // 初始化
 EverShop_Content_Builder::init();
+
 

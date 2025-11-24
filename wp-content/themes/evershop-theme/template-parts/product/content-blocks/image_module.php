@@ -9,10 +9,10 @@ if (!defined('ABSPATH')) exit;
 
 // 提取字段
 $title = isset($block_data['title']) ? $block_data['title'] : '';
-$image = isset($block_data['image']) ? $block_data['image'] : '';
-$mobile_image = isset($block_data['mobile_image']) ? $block_data['mobile_image'] : '';
-$image_position = isset($block_data['image_position']) ? $block_data['image_position'] : 'left';
-$product_images = isset($block_data['product_images']) ? $block_data['product_images'] : array();
+$images = isset($block_data['images']) ? $block_data['images'] : array();
+$image_position = isset($block_data['image_position']) ? $block_data['image_position'] : 'full';
+$content_title = isset($block_data['content_title']) ? $block_data['content_title'] : '';
+$content_text = isset($block_data['content_text']) ? $block_data['content_text'] : '';
 $button_text = isset($block_data['button_text']) ? $block_data['button_text'] : '';
 $button_action = isset($block_data['button_action']) ? $block_data['button_action'] : 'none';
 $button_link = isset($block_data['button_link']) ? $block_data['button_link'] : '';
@@ -22,8 +22,15 @@ $text_color = isset($block_data['text_color']) ? $block_data['text_color'] : '#0
 $button_bg_color = isset($block_data['button_bg_color']) ? $block_data['button_bg_color'] : '#000000';
 $button_text_color = isset($block_data['button_text_color']) ? $block_data['button_text_color'] : '#ffffff';
 
-// 判断是否有额外图片（多图模式）
-$has_gallery = !empty($product_images) && is_array($product_images);
+// 确保 images 是数组
+if (!is_array($images)) {
+    $images = array();
+}
+
+// 判断图片数量（多图模式）
+$image_count = count($images);
+$has_gallery = $image_count > 1;
+$has_content = !empty($content_title) || !empty($content_text) || !empty($button_text);
 
 ?>
 
@@ -34,14 +41,18 @@ $has_gallery = !empty($product_images) && is_array($product_images);
         
         <!-- 图片区域 -->
         <div class="image-section">
-            <?php if (!$has_gallery && $image) : 
-                // 单图模式 - 使用原始尺寸获得最佳质量
-                $image_url = is_numeric($image) ? wp_get_attachment_image_url($image, 'full') : $image;
-                $mobile_image_url = $mobile_image ? (is_numeric($mobile_image) ? wp_get_attachment_image_url($mobile_image, 'full') : $mobile_image) : '';
+            <?php if ($image_count === 1) : 
+                // 单图模式
+                $first_image = $images[0];
+                $img = isset($first_image['image']) ? $first_image['image'] : '';
+                $mobile_img = isset($first_image['mobile_image']) ? $first_image['mobile_image'] : '';
+                $alt_text = isset($first_image['alt_text']) ? $first_image['alt_text'] : 'Product Image';
                 
-                // 获取 srcset 以支持高清屏
-                $image_srcset = is_numeric($image) ? wp_get_attachment_image_srcset($image, 'full') : '';
-                $mobile_srcset = is_numeric($mobile_image) ? wp_get_attachment_image_srcset($mobile_image, 'full') : '';
+                if ($img) :
+                    $image_url = is_numeric($img) ? wp_get_attachment_image_url($img, 'full') : $img;
+                    $mobile_image_url = $mobile_img ? (is_numeric($mobile_img) ? wp_get_attachment_image_url($mobile_img, 'full') : $mobile_img) : '';
+                    $image_srcset = is_numeric($img) ? wp_get_attachment_image_srcset($img, 'full') : '';
+                    $mobile_srcset = is_numeric($mobile_img) ? wp_get_attachment_image_srcset($mobile_img, 'full') : '';
             ?>
                 <picture>
                     <?php if ($mobile_image_url) : ?>
@@ -50,37 +61,16 @@ $has_gallery = !empty($product_images) && is_array($product_images);
                     <?php endif; ?>
                     <img src="<?php echo esc_url($image_url); ?>" 
                          <?php if ($image_srcset) : ?>srcset="<?php echo esc_attr($image_srcset); ?>"<?php endif; ?>
-                         alt="Product Image" 
+                         alt="<?php echo esc_attr($alt_text); ?>" 
                          class="main-image">
                 </picture>
+                <?php endif; ?>
                 
             <?php elseif ($has_gallery) : 
                 // 多图模式（横向画廊）
             ?>
                 <div class="product-gallery">
-                    <!-- 主图 -->
-                    <?php if ($image) : 
-                        $image_url = is_numeric($image) ? wp_get_attachment_image_url($image, 'full') : $image;
-                        $mobile_image_url = $mobile_image ? (is_numeric($mobile_image) ? wp_get_attachment_image_url($mobile_image, 'full') : $mobile_image) : '';
-                        $image_srcset = is_numeric($image) ? wp_get_attachment_image_srcset($image, 'full') : '';
-                        $mobile_srcset = is_numeric($mobile_image) ? wp_get_attachment_image_srcset($mobile_image, 'full') : '';
-                    ?>
-                        <div class="gallery-item">
-                            <picture>
-                                <?php if ($mobile_image_url) : ?>
-                                    <source media="(max-width: 768px)" 
-                                            srcset="<?php echo esc_attr($mobile_srcset ? $mobile_srcset : $mobile_image_url); ?>">
-                                <?php endif; ?>
-                                <img src="<?php echo esc_url($image_url); ?>" 
-                                     <?php if ($image_srcset) : ?>srcset="<?php echo esc_attr($image_srcset); ?>"<?php endif; ?>
-                                     alt="Product Image" 
-                                     class="gallery-image">
-                            </picture>
-                        </div>
-                    <?php endif; ?>
-                    
-                    <!-- 额外图片 -->
-                    <?php foreach ($product_images as $item) : 
+                    <?php foreach ($images as $item) : 
                         $item_image = isset($item['image']) ? $item['image'] : '';
                         $item_mobile = isset($item['mobile_image']) ? $item['mobile_image'] : '';
                         $alt_text = isset($item['alt_text']) ? $item['alt_text'] : 'Product Image';
@@ -110,8 +100,17 @@ $has_gallery = !empty($product_images) && is_array($product_images);
         </div>
         
         <!-- 文字内容区域 -->
+        <?php if ($has_content) : ?>
         <div class="content-section">
             <div class="content-inner">
+                <?php if ($content_title) : ?>
+                    <h3 class="content-title"><?php echo esc_html($content_title); ?></h3>
+                <?php endif; ?>
+                
+                <?php if ($content_text) : ?>
+                    <p class="content-text"><?php echo nl2br(esc_html($content_text)); ?></p>
+                <?php endif; ?>
+                
                 <?php if ($button_text) : ?>
                     <?php if ($button_action === 'scroll' && $scroll_target) : ?>
                         <button class="cta-button" 
@@ -133,6 +132,7 @@ $has_gallery = !empty($product_images) && is_array($product_images);
                 <?php endif; ?>
             </div>
         </div>
+        <?php endif; ?>
         
     </div>
 </section>
@@ -403,6 +403,61 @@ picture img,
 .content-inner {
     width: 100%;
     max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+}
+
+/* 文案标题样式 */
+.content-title {
+    font-size: 26px;
+    font-weight: bold;
+    margin: 0 0 15px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    line-height: 1.3;
+    color: #000;
+    font-family: DDCHardware, 'Arial Black', 'Arial Bold', Arial, sans-serif;
+}
+
+/* 分隔线样式 */
+.content-divider {
+    display: block;
+    width: 80px;
+    height: 2px;
+    background-color: #000;
+    margin-bottom: 20px;
+}
+
+/* 文案内容样式 */
+.content-text {
+    font-size: 16px;
+    line-height: 1.7;
+    margin: 0 0 20px 0;
+    color: #000;
+}
+
+/* 全宽模式下文案样式调整 */
+.full-width-mode .content-inner {
+    align-items: center;
+    text-align: center;
+}
+
+.full-width-mode .content-title {
+    color: #fff;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.full-width-mode .content-text {
+    color: #fff;
+    text-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
+    max-width: 600px;
+}
+
+.full-width-mode .content-divider {
+    background-color: #fff;
+    opacity: 0.5;
 }
 
 .cta-button {
@@ -517,6 +572,25 @@ picture img,
         text-align: center;
         padding: 14px 30px;
         font-size: 14px;
+    }
+    
+    /* 移动端文案样式 */
+    .content-inner {
+        align-items: center;
+        text-align: center;
+        padding: 20px 0;
+    }
+    
+    .content-title {
+        font-size: 20px;
+    }
+    
+    .content-text {
+        font-size: 14px;
+    }
+    
+    .content-divider {
+        width: 60px;
     }
     
     .full-width-mode .main-image {
