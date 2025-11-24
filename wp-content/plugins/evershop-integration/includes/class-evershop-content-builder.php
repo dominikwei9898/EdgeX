@@ -85,7 +85,7 @@ class EverShop_Content_Builder {
                     ),
                     'product_images' => array(
                         'type' => 'repeater',
-                        'label' => '额外产品图片（可选）',
+                        'label' => '产品图片',
                         'button_label' => '+ 添加更多图片',
                         'description' => '添加多张图片将显示为横向画廊',
                         'fields' => array(

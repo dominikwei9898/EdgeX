@@ -255,10 +255,10 @@ class EverShop_Custom_Fields {
             </div>
             
             <div style="margin-top: 15px; display: flex; align-items: center; gap: 15px;">
-                <button type="button" class="button button-secondary" id="add-feature-btn">
-                    + Add Feature
-                </button>
-                
+            <button type="button" class="button button-secondary" id="add-feature-btn">
+                + Add Feature
+            </button>
+            
                 <button type="button" class="button button-primary" id="save-features-btn" data-post-id="<?php echo $post->ID; ?>">
                     💾 Save Features
                 </button>

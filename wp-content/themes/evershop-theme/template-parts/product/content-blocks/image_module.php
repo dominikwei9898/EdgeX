@@ -209,6 +209,27 @@ $has_gallery = !empty($product_images) && is_array($product_images);
 .image-section {
     flex: 1;
     min-width: 0;
+    max-width: 50%;
+    overflow: hidden;
+}
+
+/* 单图/多图左右布局时，确保图片区域不超出容器 */
+.image-position-left .image-section,
+.image-position-right .image-section {
+    max-width: 50%;
+    min-height: 500px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* picture元素自适应宽度 */
+.image-position-left .image-section picture,
+.image-position-right .image-section picture {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .main-image {
@@ -216,6 +237,17 @@ $has_gallery = !empty($product_images) && is_array($product_images);
     height: auto;
     display: block;
     border-radius: 8px;
+}
+
+/* 左/右布局时的单图 - 适配高度和宽度 */
+.image-position-left .main-image,
+.image-position-right .main-image {
+    width: 100%;
+    height: auto;
+    min-height: 500px;
+    max-height: 600px;
+    object-fit: contain;
+    max-width: 100%;
 }
 
 .full-width-mode .main-image {
@@ -246,18 +278,36 @@ picture img,
 /* ===== 多图画廊 ===== */
 .product-gallery {
     display: flex;
+    flex-wrap: wrap;
     gap: 20px;
+    width: 100%;
+}
+
+/* 左/右布局模式下的画廊 - 水平居中排列（参考 Jay 网站） */
+.image-position-left .product-gallery,
+.image-position-right .product-gallery {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 2rem;
+    position: relative;
+    flex-wrap: nowrap;
     overflow-x: auto;
-    scroll-snap-type: x mandatory;
+    overflow-y: hidden;
     scrollbar-width: thin;
-    padding: 10px 0;
+    padding: 20px 0;
 }
 
 .full-width-mode .product-gallery {
     padding: 0;
     gap: 0;
+    flex-direction: row;
     flex-wrap: wrap;
     overflow-x: visible;
+    overflow-y: visible;
+    max-height: none;
 }
 
 .full-width-mode .gallery-item {
@@ -266,7 +316,31 @@ picture img,
     min-width: 300px;
 }
 
+/* 左/右布局时的gallery-item - 适配高度和宽度 */
+.image-position-left .gallery-item,
+.image-position-right .gallery-item {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 200px;
+    max-width: 400px;
+    min-height: 500px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* gallery-item内的picture元素自适应 */
+.image-position-left .gallery-item picture,
+.image-position-right .gallery-item picture {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .product-gallery::-webkit-scrollbar {
+    width: 6px;
     height: 6px;
 }
 
@@ -283,19 +357,31 @@ picture img,
 .gallery-item {
     flex: 0 0 auto;
     width: 300px;
-    scroll-snap-align: start;
 }
 
 .gallery-image {
     width: 100%;
     height: auto;
+    max-width: 100%;
     display: block;
     border-radius: 8px;
     transition: transform 0.3s ease;
+    object-fit: cover;
+}
+
+.image-position-left .gallery-image,
+.image-position-right .gallery-image {
+    width: 100%;
+    height: auto;
+    min-height: 500px;
+    max-height: 600px;
+    max-width: 100%;
+    object-fit: contain;
+    border-radius: 8px;
 }
 
 .gallery-image:hover {
-    transform: scale(1.05);
+    transform: scale(1.02);
 }
 
 /* ===== 文字内容区域 ===== */
@@ -303,11 +389,20 @@ picture img,
     flex: 1;
     display: flex;
     align-items: center;
+    justify-content: center;
     min-width: 0;
+    max-width: 50%;
+    padding: 0 40px;
+}
+
+.image-position-left .content-section,
+.image-position-right .content-section {
+    max-width: 50%;
 }
 
 .content-inner {
     width: 100%;
+    max-width: 100%;
 }
 
 .cta-button {
@@ -355,8 +450,66 @@ picture img,
         gap: 20px;
     }
     
-    .gallery-item {
-        width: 200px;
+    /* 移动端下图片和内容区域占满宽度 */
+    .image-section,
+    .content-section,
+    .image-position-left .image-section,
+    .image-position-right .image-section,
+    .image-position-left .content-section,
+    .image-position-right .content-section {
+        max-width: 100%;
+        width: 100%;
+        min-height: auto;
+    }
+    
+    .content-section {
+        padding: 0 20px;
+    }
+    
+    /* 移动端画廊 - 不换行，均匀分布，弹性自适应 */
+    .image-position-left .product-gallery,
+    .image-position-right .product-gallery {
+        flex-direction: row;
+        flex-wrap: nowrap;           /* ✅ 不换行 */
+        overflow-x: auto;            /* ✅ 超出时横向滚动 */
+        overflow-y: hidden;
+        max-height: none;
+        min-height: auto;
+        justify-content: space-between;  /* ✅ 均匀分布 */
+        gap: 15px;
+        width: 100%;
+    }
+    
+    /* 移动端gallery-item - 弹性自适应容器宽度 */
+    .gallery-item,
+    .image-position-left .gallery-item,
+    .image-position-right .gallery-item {
+        flex: 1 1 auto;              /* ✅ 弹性自适应 */
+        min-width: 120px;            /* ✅ 最小宽度 */
+        max-width: 50%;              /* ✅ 最大宽度不超过50% */
+        width: auto;
+        min-height: auto;
+    }
+    
+    /* 移动端单图 - 占满容器宽度 */
+    .image-position-left .main-image,
+    .image-position-right .main-image {
+        width: 100%;
+        height: auto;
+        min-height: auto;
+        max-height: none;
+        object-fit: contain;
+    }
+    
+    /* 移动端gallery图片 - 自适应容器宽度 */
+    .image-position-left .gallery-image,
+    .image-position-right .gallery-image {
+        width: 100%;                 /* ✅ 填满gallery-item */
+        height: auto;
+        min-height: 200px;           /* ✅ 保持最小高度 */
+        max-height: 300px;
+        max-width: 100%;
+        object-fit: contain;
     }
     
     .cta-button {
@@ -378,11 +531,21 @@ picture img,
 
 @media (max-width: 480px) {
     .product-gallery {
-        gap: 15px;
+        gap: 10px;
     }
     
-    .gallery-item {
-        width: 180px;
+    /* 小屏幕下gallery-item也保持弹性自适应 */
+    .image-position-left .gallery-item,
+    .image-position-right .gallery-item {
+        flex: 1 1 auto;
+        min-width: 100px;            /* ✅ 减小最小宽度 */
+        max-width: 45%;              /* ✅ 小屏幕最大45% */
+    }
+    
+    .image-position-left .gallery-image,
+    .image-position-right .gallery-image {
+        min-height: 150px;           /* ✅ 小屏幕减小最小高度 */
+        max-height: 250px;
     }
     
     .full-width-mode .gallery-item {
