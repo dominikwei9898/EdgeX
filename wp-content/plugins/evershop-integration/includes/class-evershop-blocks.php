@@ -50,24 +50,7 @@ class EverShop_Blocks {
             ]
         ]);
         
-        // 2. Product Videos 区块
-        register_block_type(EVERSHOP_INTEGRATION_PLUGIN_DIR . 'blocks/product-videos', [
-            'render_callback' => [$this, 'render_product_videos_block'],
-            'attributes' => [
-                'title' => [
-                    'type' => 'string',
-                    'default' => 'Product Videos'
-                ],
-                'videos' => [
-                    'type' => 'array',
-                    'default' => []
-                ],
-                'autoplay' => [
-                    'type' => 'boolean',
-                    'default' => false
-                ]
-            ]
-        ]);
+        // 视频功能已整合到 EdgeX Content Builder
         
         // 3. Testimonials 评价轮播区块
         register_block_type(EVERSHOP_INTEGRATION_PLUGIN_DIR . 'blocks/testimonials', [
@@ -185,42 +168,7 @@ class EverShop_Blocks {
         return ob_get_clean();
     }
     
-    /**
-     * 渲染 Product Videos 区块
-     */
-    public function render_product_videos_block($attributes) {
-        $title = $attributes['title'] ?? 'Product Videos';
-        $videos = $attributes['videos'] ?? [];
-        
-        if (empty($videos)) {
-            return '';
-        }
-        
-        ob_start();
-        ?>
-        <div class="evershop-product-videos">
-            <h2 class="videos-title"><?php echo esc_html($title); ?></h2>
-            <div class="videos-grid swiper">
-                <div class="swiper-wrapper">
-                    <?php foreach ($videos as $video) : ?>
-                        <div class="swiper-slide video-item">
-                            <?php if (!empty($video['url'])) : ?>
-                                <?php echo wp_oembed_get($video['url']); ?>
-                            <?php endif; ?>
-                            <?php if (!empty($video['title'])) : ?>
-                                <h4 class="video-title"><?php echo esc_html($video['title']); ?></h4>
-                            <?php endif; ?>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-                <div class="swiper-button-prev"></div>
-                <div class="swiper-button-next"></div>
-                <div class="swiper-pagination"></div>
-            </div>
-        </div>
-        <?php
-        return ob_get_clean();
-    }
+    // 视频功能已整合到 EdgeX Content Builder
     
     /**
      * 渲染 Testimonials 区块
@@ -395,8 +343,8 @@ class EverShop_Blocks {
                 EVERSHOP_INTEGRATION_VERSION
             );
             
-            // 如果页面包含视频或评价轮播，加载 Swiper
-            if (has_block('evershop/product-videos') || has_block('evershop/testimonials')) {
+            // 如果页面包含评价轮播，加载 Swiper
+            if (has_block('evershop/testimonials')) {
                 wp_enqueue_script(
                     'swiper',
                     'https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js',

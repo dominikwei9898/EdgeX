@@ -207,37 +207,7 @@
             this.setupVideoClicks();
         }
         
-        createModal() {
-            // Create lightbox modal for videos
-            this.modal = document.createElement('div');
-            this.modal.className = 'video-modal';
-            this.modal.innerHTML = `
-                <div class="video-modal-overlay"></div>
-                <div class="video-modal-content">
-                    <button class="video-modal-close">&times;</button>
-                    <div class="video-modal-player"></div>
-                </div>
-            `;
-            document.body.appendChild(this.modal);
-            
-            // Close on overlay click
-            this.modal.querySelector('.video-modal-overlay').addEventListener('click', () => {
-                this.closeModal();
-            });
-            
-            // Close on X button
-            this.modal.querySelector('.video-modal-close').addEventListener('click', () => {
-                this.closeModal();
-            });
-            
-            // Close on ESC key
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') {
-                    this.closeModal();
-                }
-            });
-        }
-        
+
         setupVideoClicks() {
             this.videos.forEach(video => {
                 const playBtn = video.querySelector('.video-play-button');
@@ -250,35 +220,6 @@
                     });
                 }
             });
-        }
-        
-        openModal(videoUrl) {
-            const player = this.modal.querySelector('.video-modal-player');
-            const embedUrl = this.getEmbedUrl(videoUrl);
-            
-            if (embedUrl) {
-                player.innerHTML = `
-                    <iframe 
-                        src="${embedUrl}" 
-                        frameborder="0" 
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                        allowfullscreen>
-                    </iframe>
-                `;
-            } else {
-                player.innerHTML = `<video src="${videoUrl}" controls autoplay></video>`;
-            }
-            
-            this.modal.classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-        
-        closeModal() {
-            const player = this.modal.querySelector('.video-modal-player');
-            player.innerHTML = ''; // Stop video playback
-            
-            this.modal.classList.remove('active');
-            document.body.style.overflow = '';
         }
         
         getEmbedUrl(url) {

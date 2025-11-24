@@ -75,71 +75,7 @@ class EverShop_Custom_Fields {
         );
     }
     
-    /**
-     * 渲染视频元数据框
-     */
-    public function render_videos_metabox($post) {
-        wp_nonce_field('evershop_save_product_meta', 'evershop_product_meta_nonce');
-        
-        $videos = get_post_meta($post->ID, '_product_videos', true);
-        $videos_title = get_post_meta($post->ID, '_videos_title', true);
-        $video_array = $videos ? json_decode($videos, true) : [];
-        
-        ?>
-        <div class="evershop-videos-wrapper">
-            <p>
-                <label for="videos_title"><strong>Videos Section Title:</strong></label><br>
-                <input type="text" id="videos_title" name="videos_title" value="<?php echo esc_attr($videos_title); ?>" class="widefat" placeholder="e.g., Watch Jay Cutler in Action">
-            </p>
-            
-            <div id="evershop-videos-list">
-                <?php
-                if (!empty($video_array)) {
-                    foreach ($video_array as $index => $video) {
-                        $this->render_video_row($index, $video);
-                    }
-                }
-                ?>
-            </div>
-            
-            <button type="button" class="button button-secondary" id="add-video-btn">
-                + Add Video URL
-            </button>
-            
-            <p class="description">Add YouTube, Vimeo, or direct video URLs. These will be displayed on the product page.</p>
-        </div>
-        
-        <script>
-        jQuery(document).ready(function($) {
-            let videoIndex = <?php echo count($video_array); ?>;
-            
-            $('#add-video-btn').on('click', function() {
-                const html = `
-                    <div class="evershop-video-row" style="margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
-                        <input type="text" name="product_videos[]" value="" class="widefat" placeholder="https://youtube.com/watch?v=..." style="margin-bottom: 5px;">
-                        <button type="button" class="button button-small remove-video-btn" style="color: #dc3232;">Remove</button>
-                    </div>
-                `;
-                $('#evershop-videos-list').append(html);
-                videoIndex++;
-            });
-            
-            $(document).on('click', '.remove-video-btn', function() {
-                $(this).closest('.evershop-video-row').remove();
-            });
-        });
-        </script>
-        <?php
-    }
-    
-    private function render_video_row($index, $video) {
-        ?>
-        <div class="evershop-video-row" style="margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
-            <input type="text" name="product_videos[]" value="<?php echo esc_attr($video); ?>" class="widefat" placeholder="https://youtube.com/watch?v=..." style="margin-bottom: 5px;">
-            <button type="button" class="button button-small remove-video-btn" style="color: #dc3232;">Remove</button>
-        </div>
-        <?php
-    }
+    // 视频功能已整合到 EdgeX Content Builder
     
     /**
      * 渲染评价元数据框
@@ -513,18 +449,7 @@ class EverShop_Custom_Fields {
             return;
         }
         
-        // 保存视频
-        if (isset($_POST['product_videos'])) {
-            $videos = array_filter($_POST['product_videos']);
-            update_post_meta($post_id, '_product_videos', wp_json_encode($videos));
-        } else {
-            delete_post_meta($post_id, '_product_videos');
-        }
-        
-        // 保存视频标题
-        if (isset($_POST['videos_title'])) {
-            update_post_meta($post_id, '_videos_title', sanitize_text_field($_POST['videos_title']));
-        }
+        // 视频功能已整合到 EdgeX Content Builder
         
         // 保存评价
         if (isset($_POST['testimonial_author'])) {
@@ -591,27 +516,7 @@ class EverShop_Custom_Fields {
      * 在 REST API 中注册自定义字段
      */
     public function register_custom_fields_in_api() {
-        // 注册产品视频
-        register_rest_field('product', 'product_videos', [
-            'get_callback' => function($object) {
-                $videos = get_post_meta($object['id'], '_product_videos', true);
-                return $videos ? json_decode($videos, true) : [];
-            },
-            'schema' => [
-                'description' => 'Product video URLs',
-                'type' => 'array'
-            ]
-        ]);
-        
-        register_rest_field('product', 'videos_title', [
-            'get_callback' => function($object) {
-                return get_post_meta($object['id'], '_videos_title', true);
-            },
-            'schema' => [
-                'description' => 'Videos section title',
-                'type' => 'string'
-            ]
-        ]);
+        // 视频功能已整合到 EdgeX Content Builder
         
         // 注册评价
         register_rest_field('product', 'testimonials', [

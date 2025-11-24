@@ -139,7 +139,7 @@ class EverShop_Content_Builder {
             'video_carousel' => array(
                 'label' => '视频轮播',
                 'icon' => '🎬',
-                'description' => '展示多个产品视频（支持 YouTube/Vimeo）',
+                'description' => '展示多个产品视频',
                 'fields' => array(
                     'title' => array('type' => 'text', 'label' => '模块标题', 'placeholder' => 'BURN, RECOVER, REPEAT WITH LIQUID L CARNITINE'),
                     'background_color' => array('type' => 'color', 'label' => '背景颜色', 'default' => '#000000'),
@@ -149,8 +149,6 @@ class EverShop_Content_Builder {
                         'button_label' => '+ 添加视频',
                         'fields' => array(
                             'video_url' => array('type' => 'url', 'label' => '视频链接', 'placeholder' => 'https://youtube.com/watch?v=xxx'),
-                            'thumbnail' => array('type' => 'image', 'label' => '缩略图'),
-                            'title' => array('type' => 'text', 'label' => '视频标题（选填）'),
                         )
                     )
                 )
@@ -748,14 +746,23 @@ class EverShop_Content_Builder {
         $blocks = self::get_product_content_blocks($product_id);
         
         if (empty($blocks)) {
+            // Debug: 输出调试信息（开发环境）
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                echo '<!-- EdgeX Content Builder: No blocks found for product ' . $product_id . ' -->';
+            }
             return;
         }
         
-        foreach ($blocks as $block) {
+        foreach ($blocks as $index => $block) {
             $block_type = isset($block['type']) ? $block['type'] : '';
             
             if (empty($block_type)) {
                 continue;
+            }
+            
+            // Debug: 输出块信息
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                echo '<!-- EdgeX Content Builder: Rendering block type "' . esc_html($block_type) . '" -->';
             }
             
             // 查找模板文件
@@ -776,8 +783,19 @@ class EverShop_Content_Builder {
             if ($template_file) {
                 // 使块数据在模板中可用
                 $block_data = isset($block['data']) ? $block['data'] : array();
+                
+                // Debug: 输出数据结构（开发环境）
+                if (defined('WP_DEBUG') && WP_DEBUG && $block_type === 'video_carousel') {
+                    echo '<!-- Video Carousel Data: ' . esc_html(json_encode($block_data, JSON_PRETTY_PRINT)) . ' -->';
+                }
+                
                 include $template_file;
             } else {
+                // Debug: 模板文件未找到
+                if (defined('WP_DEBUG') && WP_DEBUG) {
+                    echo '<!-- EdgeX Content Builder: Template not found for "' . esc_html($block_type) . '" -->';
+                }
+                
                 // 备选：使用钩子允许自定义渲染
                 do_action('edgex_render_content_block_' . $block_type, $block, $product_id);
             }

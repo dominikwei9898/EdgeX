@@ -388,8 +388,7 @@ class EverShop_Products {
         }, $tags);
         
         // EverShop 自定义字段
-        $data['product_videos'] = $this->get_json_meta($product_id, '_product_videos');
-        $data['videos_title'] = get_post_meta($product_id, '_videos_title', true);
+        // 视频功能已整合到 EdgeX Content Builder
         $data['testimonials'] = $this->get_json_meta($product_id, '_product_testimonials');
         $data['testimonials_title'] = get_post_meta($product_id, '_testimonials_title', true);
         $data['specifications'] = $this->get_json_meta($product_id, '_product_specifications');
