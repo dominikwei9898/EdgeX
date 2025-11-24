@@ -125,7 +125,7 @@ class CajipayWCPaymentGateway extends WC_Payment_Gateway {
 	 * @param string $trimmarker
 	 */
 	public  function get_order_title($order,$limit=32,$trimmarker='...'){
-	    $id = method_exists($order, 'get_id')?$order->get_id():$order->id;
+	    $id = method_exists($order, method: 'get_id')?$order->get_id():$order->id;
 		$title="#{$id}|".get_option('blogname');
 
 		$order_items =$order->get_items();
@@ -242,6 +242,14 @@ class CajipayWCPaymentGateway extends WC_Payment_Gateway {
 
 	public function getFormUrl($curl_params)
     {
+        $this->log("=== getFormUrl() START ===");
+        $this->log("Params before adding token: " . print_r([
+            'order_no' => $curl_params['order_no'],
+            'invoice_id' => $curl_params['invoice_id'],
+            'amount' => $curl_params['amount'],
+            'currency' => $curl_params['currency'],
+            'username' => $curl_params['username']
+        ], true));
 
         $curl_params = $this->request_hash($curl_params);
         $gateway_url = $this->get_option('cajipay_gatewayUrl');
@@ -249,35 +257,47 @@ class CajipayWCPaymentGateway extends WC_Payment_Gateway {
         
         $this->log("--- SENDING CURL REQUEST ---");
         $this->log("URL: " . $gateway_url);
+        $this->log("Token generated: " . $curl_params['token']);
         $this->log("Final Params (with token): " . print_r($curl_params, true));
         
         // print_r($curl_params);
         // echo $gateway_url;exit;
         $result = $this->curlGet($gateway_url,$curl_params);
+        
+        $this->log("Result errcode: " . $result["errcode"]);
+        
         if($result["errcode"] === 0) {
-            $this->log("CURL Success. Response Data: " . print_r($result['data'], true));
+            $this->log("✓ CURL Success. Response Data: " . print_r($result['data'], true));
             // DEBUG: Log final output
             $this->log("=== DEBUG: Order Pay Page Outputting HTML/Script ===");
             echo  $result['data'];
         }else{
-            $this->log("CURL Error. ErrMsg: " . $result['errmsg']);
+            $this->log("✗ CURL Error. ErrMsg: " . $result['errmsg']);
+            $this->log("Redirecting to cancel URL");
         	$failUrl = $curl_params['cancel_url'];
             echo '<script>window.location.href="'.$failUrl.'";</script>';
         }
+        $this->log("=== getFormUrl() END ===");
         // exit;
     }
 
     public function getPaymentSelect(){
+        $this->log("=== START getPaymentSelect ===");
+        
         global $woocommerce;
         $item_list = $woocommerce->cart->get_cart();
         $total = 0;
 		foreach ($item_list as $value){
             $total += $value['line_total'];
 		}
+        
+        $this->log("Cart Total: $total");
 
         $data['ip'] = self::getClientIp();
         $data['currency'] = get_woocommerce_currency();
         $data['amount'] = $total;
+        
+        $this->log("Basic Data: " . print_r($data, true));
 
         $curl_params = $data;
         $curl_params['username'] = $this->get_option('cajipay_username');
@@ -286,14 +306,31 @@ class CajipayWCPaymentGateway extends WC_Payment_Gateway {
         $curl_params['api_key'] = $this->get_option('cajipay_key');
         $curl_params['host'] = $_SERVER["HTTP_HOST"];
         $curl_params['time'] = time();
+        
+        $this->log("Params before hash: " . print_r($curl_params, true));
+        
         $curl_params = self::request_hash($curl_params);
         $api_url = $this->get_option('cajipay_gatewayUrl');
         $api_url = rtrim($api_url,'/').'/';
         $api_url = str_replace('/pay','',$api_url);
-        $result = $this->curlGet($api_url.'PayV2/getPaymentSelects',$curl_params);
+        
+        $full_url = $api_url.'PayV2/getPaymentSelects';
+        $this->log("Request URL: $full_url");
+        $this->log("Request Params (with token): " . print_r($curl_params, true));
+        
+        $result = $this->curlGet($full_url, $curl_params);
+        
+        $this->log("getPaymentSelects Response: " . print_r($result, true));
+        
         if($result["errcode"] === 0) {
+            $this->log("Payment select options retrieved successfully");
+            $this->log("=== END getPaymentSelect (Success) ===");
             return  $result['data'];
         }else{
+            $this->log("Failed to get payment options, using default description");
+            $this->log("Error Code: " . $result["errcode"]);
+            $this->log("Error Message: " . $result["errmsg"]);
+            $this->log("=== END getPaymentSelect (Fallback) ===");
             return $this->get_option ( 'description' );
         }
     }
@@ -369,58 +406,85 @@ class CajipayWCPaymentGateway extends WC_Payment_Gateway {
 
 	public function curlGet($url,$curl_params, $timeout = 10, $ssl=false)
     {
+        $this->log("=== curlGet() START ===");
+        $this->log("Target URL: " . $url);
+        
         $header = [
             "escloak-key: ".$this->get_option('cajipay_key'),
             "username: ".$this->get_option('cajipay_username'),
             "domain: ".$_SERVER["HTTP_HOST"],
         ];
+        
+        $this->log("Request Headers: " . print_r($header, true));
+        
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_HEADER, false);
-        curl_setopt($curl, CURLINFO_HEADER_OUT, false);
+        curl_setopt($curl, CURLINFO_HEADER_OUT, true);
         curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($curl, CURLOPT_FORBID_REUSE, false);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($curl, CURLOPT_URL, $url);
         $arr = http_build_query($curl_params);
+        
+        $this->log("Request Body (encoded): " . substr($arr, 0, 500) . (strlen($arr) > 500 ? '... [truncated]' : ''));
+        
         curl_setopt($curl, CURLOPT_POST, true);
         curl_setopt($curl, CURLOPT_POSTFIELDS, $arr);
         curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, $timeout);
         curl_setopt($curl, CURLOPT_TIMEOUT, $timeout);
         curl_setopt($curl, CURLOPT_HTTPHEADER, $header);
-        // 模拟浏览器 User-Agent 防止被 Cloudflare 等防火墙拦截
+       
         curl_setopt($curl, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+        
         $data = curl_exec($curl);
         $curlErrno = curl_errno($curl);
         $curlError = curl_error($curl);
+        $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        $headersSent = curl_getinfo($curl, CURLINFO_HEADER_OUT);
+        
+        $this->log("HTTP Status Code: " . $httpCode);
+        $this->log("Headers Sent: " . $headersSent);
+        $this->log("Raw Response: " . $data);
+        
         curl_close($curl);
+        
         if ($curlErrno > 0) {
+            $this->log("CURL Error! Code: $curlErrno, Message: $curlError");
             $gShow['errcode'] = 1;
             $gShow['errmsg']  = sprintf('警告：CURL错误 %s(%s)！', $curlError, $curlErrno);
             $gShow['data']    = '';
-
+            $this->log("=== curlGet() END (CURL ERROR) ===");
             return $gShow;
         }
+        
         $result = json_decode($data, true);
         
         // Check if result is valid
         if (!isset($result['code'])) {
+             $this->log("Parse Error! No 'code' field in response");
              $gShow['data']    = $data;
              $gShow['errmsg']  = 'parse error! No code field. Response: ' . $data;
              $gShow['errcode'] = 2;
+             $this->log("=== curlGet() END (PARSE ERROR) ===");
              return $gShow;
         }
 
+        $this->log("Response code field: " . $result['code']);
+        
         if ($result['code'] == 0) {
+            $this->log("Success! Gateway returned code 0");
             $gShow['data']    = $result['data'];
             $gShow['errmsg']  = 'success';
             $gShow['errcode'] = 0;
         } else {
+            $this->log("Gateway Error! Code: " . $result['code'] . ", Message: " . (isset($result['msg']) ? $result['msg'] : 'N/A'));
             $gShow['data']    = $data;
             $gShow['errmsg']  = 'parse error! Response: ' . $data;
             $gShow['errcode'] = 2;
         }
-
+        
+        $this->log("=== curlGet() END ===");
         return $gShow;
     }
 
