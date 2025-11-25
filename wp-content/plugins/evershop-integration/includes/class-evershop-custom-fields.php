@@ -321,6 +321,9 @@ class EverShop_Custom_Fields {
      * 对应 EverShop 的 Marketing Badge 组件
      */
     public function render_badge_metabox($post) {
+        // 添加 nonce 字段用于安全验证
+        wp_nonce_field('evershop_save_product_meta', 'evershop_product_meta_nonce');
+        
         $badge_enabled = get_post_meta($post->ID, '_espf_badge_enabled', true);
         $badge_text = get_post_meta($post->ID, '_espf_badge_text', true);
         $badge_color = get_post_meta($post->ID, '_espf_badge_color', true) ?: '#fe0000'; // Jay Cutler Red: rgb(254, 0, 0)

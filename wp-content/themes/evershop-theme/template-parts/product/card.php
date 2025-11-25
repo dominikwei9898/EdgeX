@@ -68,7 +68,7 @@ if ( empty( $badge_color ) ) {
                 }
                 
                 // EverShop Custom Badge
-                if ( $badge_enabled && ! empty( $badge_text ) ) : ?>
+                if ( $badge_enabled === 'yes' && ! empty( $badge_text ) ) : ?>
                     <div class="product__badge__wrapper product__badge__absolute">
                         <span 
                             class="product__badge" 

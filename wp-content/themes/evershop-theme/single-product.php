@@ -58,7 +58,7 @@ if (get_post_type() === 'product_variation' && $product) {
                     $badge_enabled = get_post_meta(get_the_ID(), '_espf_badge_enabled', true);
                     $badge_text = get_post_meta(get_the_ID(), '_espf_badge_text', true);
                     $badge_color = get_post_meta(get_the_ID(), '_espf_badge_color', true);
-                    if ($badge_enabled && $badge_text) : 
+                    if ($badge_enabled === 'yes' && $badge_text) : 
                         // 默认使用 Jay Cutler 红色 rgb(254, 0, 0)
                         $default_color = 'rgb(254, 0, 0)';
                         $final_color = !empty($badge_color) ? $badge_color : $default_color;
