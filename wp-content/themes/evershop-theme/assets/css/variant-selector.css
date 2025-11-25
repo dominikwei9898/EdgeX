@@ -46,68 +46,81 @@
 .variant-option-button {
     position: relative;
     display: inline-block;
-    padding: 12px 24px;
-    background: #ffffff;
-    border: 2px solid #d1d5db;
+    padding: 0.5rem 1rem;
+
+    border: 1.5px solid rgba(255, 255, 255, 0.15);
     border-radius: 6px;
-    color: #1f2937;
-    font-size: 14px;
+    background-color: rgba(255, 255, 255, 0.05);
+    font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.2s ease-in-out;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+    
     text-align: center;
-    min-width: 120px;
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: none;
+    z-index: 1;
+    white-space: nowrap;
 }
 
 .variant-option-button:hover:not(:disabled) {
-    border-color: #9ca3af;
-    background: #f9fafb;
+    border-color: rgba(255, 255, 255, 0.4);
+    background-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    color: var(--cutler-orange-dark, #d0021b) !important;
+}
+
+/* 确保 un-available 状态下 hover 不生效 */
+.variant-option-item.un-available .variant-option-button:hover {
+    border-color: rgba(255, 255, 255, 0.08);
+    background-color: rgba(255, 255, 255, 0.02);
+    box-shadow: none;
+    transform: none;
+    color: rgba(255, 255, 255, 0.3) !important;
 }
 
 /* 选中状态 */
 .variant-option-item.selected .variant-option-button {
-    background: var(--cutler-orange);
-    border-color: var(--cutler-orange);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.15) 100%);
+    border-color: rgba(255, 255, 255, 0.6);
     color: #ffffff;
-    font-weight: 600;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3), 0 2px 12px rgba(255, 255, 255, 0.2);
+    font-weight: 700;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 /* 选中标记（勾选图标）*/
 .variant-option-item.selected .variant-option-button::before {
     content: '✓';
     position: absolute;
-    top: -8px;
-    right: -8px;
-    width: 24px;
-    height: 24px;
-    background: var(--cutler-orange);
+    top: 3px;
+    right: 5px;
+    font-size: 11px;
     color: #ffffff;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
     font-weight: bold;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.3));
+    
+    /* 重置原有样式 */
+    width: auto;
+    height: auto;
+    background: none;
+    border-radius: 0;
+    display: block;
+    box-shadow: none;
     z-index: 10;
 }
 
 /* 不可用状态 */
 .variant-option-item.un-available .variant-option-button {
-    background: var(--cutler-bg-light);
-    border-color: #e5e7eb;
-    color: #9ca3af;
+    background-color: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.3);
     cursor: not-allowed;
-    position: relative;
-}
-
-.variant-option-item.un-available .variant-option-button:hover {
-    transform: none;
-    box-shadow: none;
-    background: var(--cutler-bg-light);
-    border-color: #e5e7eb;
+    opacity: 0.5;
+    text-decoration: line-through;
 }
 
 /* 不可用状态的斜线 */
@@ -115,11 +128,11 @@
     content: '';
     position: absolute;
     top: 50%;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: #9ca3af;
-    transform: translateY(-50%);
+    left: -10%;
+    right: -10%;
+    height: 1px;
+    background-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-50%) rotate(-15deg);
 }
 
 .variant-option-button:disabled {

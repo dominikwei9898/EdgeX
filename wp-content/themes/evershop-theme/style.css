@@ -5226,7 +5226,7 @@ body.woocommerce-page article {
     text-align: right !important;
 }
 
-.woocommerce-cart .shop_table .product-subtotal .woocommerce-Price-amount {
+.woocommerce-cart .shop_table .product-subtotal {
     color: var(--cutler-orange) !important;
     font-weight: 700 !important;
     font-size: 1.1rem !important;

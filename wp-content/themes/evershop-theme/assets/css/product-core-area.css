@@ -45,7 +45,7 @@
 /* 兼容旧的 product-badge 类名 */
 .product-badge {
     display: inline-block; /* 使用 inline-block 确保宽度自适应内容 */
-    background-color: rgb(254, 0, 0); /* Jay Cutler 红色 - 默认颜色，可被内联样式覆盖 */
+    background-color: rgb(254, 0, 0);
     color: rgb(255, 255, 255);
     padding: 4px 8px;
     border-radius: 4px;
