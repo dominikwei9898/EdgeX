@@ -18,9 +18,22 @@ $button_action = isset($block_data['button_action']) ? $block_data['button_actio
 $button_link = isset($block_data['button_link']) ? $block_data['button_link'] : '';
 $scroll_target = isset($block_data['scroll_target']) ? $block_data['scroll_target'] : '';
 $background_color = isset($block_data['background_color']) ? $block_data['background_color'] : '#ffffff';
-$text_color = isset($block_data['text_color']) ? $block_data['text_color'] : '#000000';
+$title_color = isset($block_data['title_color']) ? $block_data['title_color'] : '#000000';
+$content_color = isset($block_data['content_color']) ? $block_data['content_color'] : '#000000';
+$text_shadow = isset($block_data['text_shadow']) ? $block_data['text_shadow'] : 'none';
 $button_bg_color = isset($block_data['button_bg_color']) ? $block_data['button_bg_color'] : '#000000';
 $button_text_color = isset($block_data['button_text_color']) ? $block_data['button_text_color'] : '#ffffff';
+
+// 文字阴影样式
+$title_shadow_style = '';
+$content_shadow_style = '';
+if ($text_shadow === 'light') {
+    $title_shadow_style = 'text-shadow: 0 2px 10px rgba(255, 255, 255, 0.5);';
+    $content_shadow_style = 'text-shadow: 0 1px 5px rgba(255, 255, 255, 0.5);';
+} elseif ($text_shadow === 'dark') {
+    $title_shadow_style = 'text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);';
+    $content_shadow_style = 'text-shadow: 0 1px 5px rgba(0, 0, 0, 0.5);';
+}
 
 // 确保 images 是数组
 if (!is_array($images)) {
@@ -31,14 +44,17 @@ if (!is_array($images)) {
 $image_count = count($images);
 $has_gallery = $image_count > 1;
 $has_content = !empty($content_title) || !empty($content_text) || !empty($button_text);
+$has_images = $image_count > 0;
+$content_only = !$has_images && $has_content;
 
 ?>
 
-<section class="edgex-image-module <?php echo $has_gallery ? 'gallery-mode' : 'single-mode'; ?> <?php echo $image_position === 'full' ? 'full-width-mode' : ''; ?>" 
-         style="background-color: <?php echo esc_attr($background_color); ?>; color: <?php echo esc_attr($text_color); ?>;">
+<section class="edgex-image-module <?php echo $has_gallery ? 'gallery-mode' : 'single-mode'; ?> <?php echo $image_position === 'full' ? 'full-width-mode' : ''; ?> <?php echo $content_only ? 'content-only-mode' : ''; ?>" 
+         style="background-color: <?php echo esc_attr($background_color); ?>;">
     
     <div class="image-module-wrapper image-position-<?php echo esc_attr($image_position); ?>">
         
+        <?php if ($has_images) : ?>
         <!-- 图片区域 -->
         <div class="image-section">
             <?php if ($image_count === 1) : 
@@ -93,22 +109,23 @@ $has_content = !empty($content_title) || !empty($content_text) || !empty($button
                                      alt="<?php echo esc_attr($alt_text); ?>" 
                                      class="gallery-image">
                             </picture>
-                        </div>
-                    <?php endforeach; ?>
+                </div>
+            <?php endforeach; ?>
                 </div>
             <?php endif; ?>
         </div>
+        <?php endif; ?>
         
         <!-- 文字内容区域 -->
         <?php if ($has_content) : ?>
         <div class="content-section">
             <div class="content-inner">
                 <?php if ($content_title) : ?>
-                    <h3 class="content-title"><?php echo esc_html($content_title); ?></h3>
+                    <h3 class="content-title" style="color: <?php echo esc_attr($title_color); ?>; <?php echo $title_shadow_style; ?>"><?php echo esc_html($content_title); ?></h3>
                 <?php endif; ?>
                 
                 <?php if ($content_text) : ?>
-                    <p class="content-text"><?php echo nl2br(esc_html($content_text)); ?></p>
+                    <p class="content-text" style="color: <?php echo esc_attr($content_color); ?>; <?php echo $content_shadow_style; ?>"><?php echo nl2br(esc_html($content_text)); ?></p>
                 <?php endif; ?>
                 
                 <?php if ($button_text) : ?>
@@ -148,6 +165,34 @@ $has_content = !empty($content_title) || !empty($content_text) || !empty($button
     display: flex;
     align-items: center;
     gap: 40px;
+}
+
+/* ===== 纯文案模式 ===== */
+.content-only-mode {
+    display: block;
+    padding: 60px 20px;
+}
+
+.content-only-mode .image-module-wrapper {
+    justify-content: center;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.content-only-mode .content-section {
+    position: static !important;
+    max-width: 100%;
+    width: 100%;
+    padding: 0;
+    text-align: center;
+}
+
+.content-only-mode .content-inner {
+    align-items: center;
+}
+
+.content-only-mode .image-section::after {
+    display: none;
 }
 
 /* 图片左侧布局 */
@@ -304,16 +349,25 @@ picture img,
     padding: 0;
     gap: 0;
     flex-direction: row;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    justify-content: center;
     overflow-x: visible;
     overflow-y: visible;
     max-height: none;
+    width: 100%;
 }
 
 .full-width-mode .gallery-item {
-    flex: 1 1 calc(33.333% - 0px);
-    width: auto;
-    min-width: 300px;
+    flex: 1 1 0;
+    width: 0;
+    min-width: 0;
+    max-width: none;
+}
+
+.full-width-mode .gallery-image {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
 }
 
 /* 左/右布局时的gallery-item - 适配高度和宽度 */
@@ -444,20 +498,8 @@ picture img,
     text-align: center;
 }
 
-.full-width-mode .content-title {
-    color: #fff;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-}
-
 .full-width-mode .content-text {
-    color: #fff;
-    text-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
     max-width: 600px;
-}
-
-.full-width-mode .content-divider {
-    background-color: #fff;
-    opacity: 0.5;
 }
 
 .cta-button {
@@ -593,6 +635,25 @@ picture img,
         width: 60px;
     }
     
+    /* 移动端纯文案模式 */
+    .content-only-mode {
+        padding: 40px 20px;
+    }
+    
+    .content-only-mode .content-section {
+        padding: 0;
+    }
+    
+    /* 移动端全宽多图模式 - 保持不换行 */
+    .full-width-mode .product-gallery {
+        flex-wrap: nowrap;
+    }
+    
+    .full-width-mode .gallery-item {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+    
     .full-width-mode .main-image {
         min-height: 300px;
     }
@@ -612,23 +673,28 @@ picture img,
     .image-position-left .gallery-item,
     .image-position-right .gallery-item {
         flex: 1 1 auto;
-        min-width: 100px;            /* ✅ 减小最小宽度 */
-        max-width: 45%;              /* ✅ 小屏幕最大45% */
+        min-width: 100px;
+        max-width: 45%;
     }
     
     .image-position-left .gallery-image,
     .image-position-right .gallery-image {
-        min-height: 150px;           /* ✅ 小屏幕减小最小高度 */
+        min-height: 150px;
         max-height: 250px;
     }
     
-    .full-width-mode .gallery-item {
-        flex: 1 1 100%;
-        width: 100%;
-        min-width: 100%;
+    /* 全宽多图模式 - 小屏幕保持不换行，自适应宽度 */
+    .full-width-mode .product-gallery {
+        flex-wrap: nowrap;
     }
     
-    .full-width-mode .content-section {
+    .full-width-mode .gallery-item {
+        flex: 1 1 0;
+        width: 0;
+        min-width: 0;
+    }
+    
+    .full-width-mode .content-section:not(.content-only-mode .content-section) {
         position: relative;
         bottom: auto;
         padding: 20px;
@@ -637,6 +703,11 @@ picture img,
     
     .full-width-mode .image-section::after {
         display: none;
+    }
+    
+    /* 小屏幕纯文案模式 */
+    .content-only-mode {
+        padding: 30px 15px;
     }
 }
 </style>

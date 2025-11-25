@@ -108,7 +108,18 @@ class EverShop_Content_Builder {
                     'button_link' => array('type' => 'url', 'label' => '跳转链接', 'show_if' => array('button_action' => array('link'))),
                     'scroll_target' => array('type' => 'text', 'label' => '滚动目标 CSS 选择器', 'placeholder' => '#section-id', 'show_if' => array('button_action' => array('scroll'))),
                     'background_color' => array('type' => 'color', 'label' => '背景颜色', 'default' => '#ffffff'),
-                    'text_color' => array('type' => 'color', 'label' => '文字颜色', 'default' => '#000000'),
+                    'title_color' => array('type' => 'color', 'label' => '标题文字颜色', 'default' => '#000000'),
+                    'content_color' => array('type' => 'color', 'label' => '正文文字颜色', 'default' => '#000000'),
+                    'text_shadow' => array(
+                        'type' => 'select',
+                        'label' => '文字阴影效果',
+                        'options' => array(
+                            'none' => '无阴影',
+                            'light' => '浅色阴影（适合深色背景）',
+                            'dark' => '深色阴影（适合浅色背景）'
+                        ),
+                        'default' => 'none'
+                    ),
                     'button_bg_color' => array('type' => 'color', 'label' => '按钮背景色', 'default' => '#000000'),
                     'button_text_color' => array('type' => 'color', 'label' => '按钮文字色', 'default' => '#ffffff'),
                 )
