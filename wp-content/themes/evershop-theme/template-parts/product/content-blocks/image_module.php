@@ -231,16 +231,6 @@ $content_only = !$has_images && $has_content;
     padding: 0;
 }
 
-.full-width-mode .image-section::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 200px;
-    background: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
-    pointer-events: none;
-}
 
 .full-width-mode .image-section {
     position: relative;
