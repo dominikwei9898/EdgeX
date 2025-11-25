@@ -1243,6 +1243,12 @@ body.woocommerce-checkout .single-page {
   text-decoration: underline;
 }
 
+.woocommerce #review_form #respond textarea {
+  box-sizing: border-box;
+  width: 100%;
+  color: black !important;
+}
+
 /* Prose 样式 - WordPress 编辑器内容 */
 
 .entry-content {

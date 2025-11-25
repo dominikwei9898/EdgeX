@@ -171,11 +171,22 @@ class EverShop_Content_Builder {
                 'description' => '展示客户真实评价（轮播展示）',
                 'fields' => array(
                     'title' => array('type' => 'text', 'label' => '模块标题', 'placeholder' => 'REAL REVIEWS FROM REAL PEOPLE'),
+                    'show_shared_images_desktop' => array(
+                        'type' => 'select',
+                        'label' => '桌面端显示客户分享图',
+                        'options' => array(
+                            'yes' => '显示',
+                            'no' => '隐藏'
+                        ),
+                        'default' => 'no',
+                        'description' => '注：移动端始终会显示图片（如果有）'
+                    ),
                     'testimonials' => array(
                         'type' => 'repeater',
                         'label' => '评价列表',
                         'button_label' => '+ 添加评价',
                         'fields' => array(
+                            'shared_image' => array('type' => 'image', 'label' => '分享图片（选填）', 'description' => '客户分享的产品实拍图'),
                             'avatar' => array('type' => 'image', 'label' => '头像（选填）'),
                             'name' => array('type' => 'text', 'label' => '客户姓名', 'placeholder' => 'John Doe'),
                             'title' => array('type' => 'text', 'label' => '评价标题', 'placeholder' => 'Game-Changer'),

@@ -2,8 +2,7 @@
 /**
  * 内容块模板：客户评价
  * 
- * 移植自 Evershop ProductTestimonials 组件
- * 对应 Jay Cutler 网站风格
+
  */
 
 if (!defined('ABSPATH')) {
@@ -11,6 +10,7 @@ if (!defined('ABSPATH')) {
 }
 
 $title = isset($block_data['title']) ? $block_data['title'] : '';
+$show_images_desktop = isset($block_data['show_shared_images_desktop']) ? $block_data['show_shared_images_desktop'] : 'no';
 $testimonials = isset($block_data['testimonials']) ? $block_data['testimonials'] : array();
 
 if (empty($testimonials)) {
@@ -41,6 +41,7 @@ $slider_id = 'testimonials-' . uniqid();
                     $testimonial_title = isset($testimonial['title']) ? $testimonial['title'] : '';
                     $content = isset($testimonial['content']) ? $testimonial['content'] : '';
                     $rating = isset($testimonial['rating']) ? intval($testimonial['rating']) : 5;
+                    $shared_image = isset($testimonial['shared_image']) ? $testimonial['shared_image'] : '';
                     
                     // 获取头像 URL
                     $avatar_url = '';
@@ -49,9 +50,24 @@ $slider_id = 'testimonials-' . uniqid();
                     } elseif (is_array($avatar) && isset($avatar['url'])) {
                         $avatar_url = $avatar['url'];
                     }
+                    
+                    // 获取分享图片 URL
+                    $shared_image_url = '';
+                    if (is_numeric($shared_image)) {
+                        $shared_image_url = wp_get_attachment_image_url($shared_image, 'large');
+                    } elseif (is_array($shared_image) && isset($shared_image['url'])) {
+                        $shared_image_url = $shared_image['url'];
+                    }
                 ?>
                 <div class="testimonial-slide">
                     <div class="testimonial-card">
+                        <!-- 客户分享图片 -->
+                        <?php if ($shared_image_url) : ?>
+                        <div class="testimonial-shared-image <?php echo $show_images_desktop === 'yes' ? 'show-desktop' : 'hide-desktop'; ?>">
+                            <img src="<?php echo esc_url($shared_image_url); ?>" alt="Customer shared photo" loading="lazy">
+                        </div>
+                        <?php endif; ?>
+                        
                         <!-- 星级评分 (保留 WordPress 原有逻辑和样式) -->
                         <div class="testimonial-rating">
                             <?php for ($i = 0; $i < 5; $i++) : ?>
@@ -182,6 +198,8 @@ $slider_id = 'testimonials-' . uniqid();
     gap: 20px;
     transition: transform 0.5s ease-in-out;
     width: 100%;
+    /* 添加 touch-action 以优化触摸体验 */
+    touch-action: pan-y; 
 }
 
 .testimonial-slide {
@@ -226,6 +244,37 @@ $slider_id = 'testimonials-' . uniqid();
 
 .testimonial-rating .star.filled {
     color: #ffd700; /* 选中颜色 */
+}
+
+/* 分享图片样式 */
+.testimonial-shared-image {
+    width: 100%;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    overflow: hidden;
+    /* 使用宽高比防止布局抖动，1:1正方形显示效果最好，类似 Instagram */
+    aspect-ratio: 1 / 1;
+    background: #1a1a1a;
+}
+
+.testimonial-shared-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.5s ease;
+}
+
+/* 图片悬停微效果 */
+.testimonial-card:hover .testimonial-shared-image img {
+    transform: scale(1.05);
+}
+
+/* 桌面端图片显示逻辑 */
+@media (min-width: 769px) {
+    .testimonial-shared-image.hide-desktop {
+        display: none;
+    }
 }
 
 /* 内容样式 */
@@ -351,8 +400,16 @@ $slider_id = 'testimonials-' . uniqid();
     }
     
     .carousel-button {
-        display: none; /* 移动端通常隐藏箭头，使用触摸或指示器 */
+        /* 移动端显示按钮 */
+        display: flex;
+        width: 32px;
+        height: 32px;
+        background: rgba(255,255,255,0.9);
     }
+
+    /* 调整按钮位置以免遮挡内容，或者使其稍微小一点 */
+    .carousel-button-prev { left: -10px; }
+    .carousel-button-next { right: -10px; }
     
     .testimonials-heading {
         font-size: 1.5rem;
@@ -376,6 +433,10 @@ $slider_id = 'testimonials-' . uniqid();
     let slidesPerView = 3;
     let isAutoPlaying = true;
     let autoPlayInterval;
+    
+    // 触摸滑动变量
+    let touchStartX = 0;
+    let touchEndX = 0;
     
     // 响应式计算 slidesPerView
     function updateSlidesPerView() {
@@ -443,6 +504,38 @@ $slider_id = 'testimonials-' . uniqid();
     function goToSlide(index) {
         currentIndex = index;
         updateSlider();
+    }
+    
+    // 触摸滑动处理
+    track.addEventListener('touchstart', e => {
+        touchStartX = e.changedTouches[0].screenX;
+        // 触摸开始时暂停自动播放
+        isAutoPlaying = false;
+        clearInterval(autoPlayInterval);
+    }, {passive: true});
+    
+    track.addEventListener('touchend', e => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+        // 触摸结束后，如果原本是自动播放状态，则尝试恢复（或保持暂停，取决于需求）
+        // 这里选择：如果用户手动交互了，就停止自动播放，避免打扰用户阅读
+        // 如果希望恢复，可以取消注释下一行
+        // if (isAutoPlaying) startAutoPlay();
+    }, {passive: true});
+    
+    function handleSwipe() {
+        const threshold = 50; // 滑动阈值 px
+        const swipeDistance = touchEndX - touchStartX;
+        
+        if (Math.abs(swipeDistance) > threshold) {
+            if (swipeDistance < 0) {
+                // 向左滑 -> 下一张
+                goToNext();
+            } else {
+                // 向右滑 -> 上一张
+                goToPrev();
+            }
+        }
     }
     
     // 事件监听
