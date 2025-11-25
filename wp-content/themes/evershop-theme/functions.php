@@ -1161,6 +1161,29 @@ function evershop_product_filters() {
             </div>
         </div>
     </div>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const filterGroups = document.querySelectorAll('.filter-group');
+        
+        // 点击外部区域关闭所有打开的 details
+        document.addEventListener('click', function(event) {
+            filterGroups.forEach(function(details) {
+                // 检查点击是否在 details 元素外部
+                if (!details.contains(event.target) && details.hasAttribute('open')) {
+                    details.removeAttribute('open');
+                }
+            });
+        });
+        
+        // 阻止点击 details 内部时的事件冒泡（防止立即关闭）
+        filterGroups.forEach(function(details) {
+            details.addEventListener('click', function(event) {
+                event.stopPropagation();
+            });
+        });
+    });
+    </script>
     <?php
 }
 
