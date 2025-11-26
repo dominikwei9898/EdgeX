@@ -21,7 +21,7 @@ if (empty($html_content)) {
 ?>
 
 <section class="component-custom-html component-custom-liquid-<?php echo uniqid(); ?>" 
-         style="background-color: <?php echo esc_attr($background_color); ?>;">
+         style="background: <?php echo esc_attr($background_color); ?>;">
     
     <!-- 自定义 HTML 内容 -->
     <div class="custom-html-content">

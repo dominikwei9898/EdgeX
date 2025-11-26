@@ -27,7 +27,7 @@ if (empty($videos) || !is_array($videos)) {
 }
 ?>
 
-<section class="product-videos" style="background-color: <?php echo esc_attr($background_color); ?>;">
+<section class="product-videos" style="background: <?php echo esc_attr($background_color); ?>;">
     <div class="page-width">
         
         <?php if ($title) : ?>

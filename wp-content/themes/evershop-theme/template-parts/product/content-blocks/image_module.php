@@ -19,7 +19,12 @@ $button_action = isset($block_data['button_action']) ? $block_data['button_actio
 $button_link = isset($block_data['button_link']) ? $block_data['button_link'] : '';
 $scroll_target = isset($block_data['scroll_target']) ? $block_data['scroll_target'] : '';
 $background_color = isset($block_data['background_color']) ? $block_data['background_color'] : '#ffffff';
+$background_image = isset($block_data['background_image']) ? $block_data['background_image'] : '';
+$background_size = isset($block_data['background_size']) ? $block_data['background_size'] : 'cover';
+$background_position = isset($block_data['background_position']) ? $block_data['background_position'] : 'center center';
+$background_repeat = isset($block_data['background_repeat']) ? $block_data['background_repeat'] : 'no-repeat';
 $title_color = isset($block_data['title_color']) ? $block_data['title_color'] : '#000000';
+$subtitle_color = isset($block_data['subtitle_color']) ? $block_data['subtitle_color'] : '#666666';
 $content_color = isset($block_data['content_color']) ? $block_data['content_color'] : '#000000';
 $text_shadow = isset($block_data['text_shadow']) ? $block_data['text_shadow'] : 'none';
 $button_bg_color = isset($block_data['button_bg_color']) ? $block_data['button_bg_color'] : '#000000';
@@ -27,14 +32,47 @@ $button_text_color = isset($block_data['button_text_color']) ? $block_data['butt
 
 // 文字阴影样式
 $title_shadow_style = '';
+$subtitle_shadow_style = '';
 $content_shadow_style = '';
 if ($text_shadow === 'light') {
     $title_shadow_style = 'text-shadow: 0 2px 10px rgba(255, 255, 255, 0.5);';
+    $subtitle_shadow_style = 'text-shadow: 0 1.5px 8px rgba(255, 255, 255, 0.5);';
     $content_shadow_style = 'text-shadow: 0 1px 5px rgba(255, 255, 255, 0.5);';
 } elseif ($text_shadow === 'dark') {
     $title_shadow_style = 'text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);';
+    $subtitle_shadow_style = 'text-shadow: 0 1.5px 8px rgba(0, 0, 0, 0.5);';
     $content_shadow_style = 'text-shadow: 0 1px 5px rgba(0, 0, 0, 0.5);';
 }
+
+// 构建背景样式
+$background_styles = array();
+
+// 检查背景颜色是否包含渐变或复杂颜色值
+$is_complex_color = (
+    stripos($background_color, 'gradient') !== false ||
+    stripos($background_color, 'rgb') !== false ||
+    stripos($background_color, 'hsl') !== false
+);
+
+// 如果是复杂颜色（渐变等），使用 background 属性；否则使用 background-color
+if ($is_complex_color) {
+    $background_styles[] = 'background: ' . esc_attr($background_color);
+} else {
+    $background_styles[] = 'background-color: ' . esc_attr($background_color);
+}
+
+// 如果有背景图片，添加相关样式
+if ($background_image) {
+    $bg_image_url = is_numeric($background_image) ? wp_get_attachment_image_url($background_image, 'full') : $background_image;
+    if ($bg_image_url) {
+        $background_styles[] = 'background-image: url(' . esc_url($bg_image_url) . ')';
+        $background_styles[] = 'background-size: ' . esc_attr($background_size);
+        $background_styles[] = 'background-position: ' . esc_attr($background_position);
+        $background_styles[] = 'background-repeat: ' . esc_attr($background_repeat);
+    }
+}
+
+$background_style_string = implode('; ', $background_styles);
 
 // 确保 images 是数组
 if (!is_array($images)) {
@@ -52,7 +90,7 @@ $gallery_only = $has_gallery && !$has_content && $image_position === 'full';
 ?>
 
 <section class="edgex-image-module <?php echo $has_gallery ? 'gallery-mode' : 'single-mode'; ?> <?php echo $image_position === 'full' ? 'full-width-mode' : ''; ?> <?php echo $content_only ? 'content-only-mode' : ''; ?> <?php echo $gallery_only ? 'gallery-only-mode' : ''; ?>" 
-         style="background-color: <?php echo esc_attr($background_color); ?>;">
+         style="<?php echo $background_style_string; ?>;">
     
     <div class="image-module-wrapper image-position-<?php echo esc_attr($image_position); ?>">
         
@@ -127,7 +165,7 @@ $gallery_only = $has_gallery && !$has_content && $image_position === 'full';
                 <?php endif; ?>
                 
                 <?php if ($content_subtitle) : ?>
-                    <h4 class="content-subtitle" style="color: <?php echo esc_attr($title_color); ?>; <?php echo $title_shadow_style; ?>"><?php echo nl2br(esc_html($content_subtitle)); ?></h4>
+                    <h4 class="content-subtitle" style="color: <?php echo esc_attr($subtitle_color); ?>; <?php echo $subtitle_shadow_style; ?>"><?php echo nl2br(esc_html($content_subtitle)); ?></h4>
                 <?php endif; ?>
                 
                 <?php if ($content_text) : ?>
@@ -258,7 +296,6 @@ $gallery_only = $has_gallery && !$has_content && $image_position === 'full';
 .image-position-left .image-section,
 .image-position-right .image-section {
     max-width: 50%;
-    min-height: 500px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -280,15 +317,14 @@ $gallery_only = $has_gallery && !$has_content && $image_position === 'full';
     border-radius: 8px;
 }
 
-/* 左/右布局时的单图 - 适配高度和宽度 */
+/* 左/右布局时的单图 - 保持实际尺寸 */
 .image-position-left .main-image,
 .image-position-right .main-image {
-    width: 100%;
+    width: auto;
     height: auto;
-    min-height: 500px;
+    max-width: 100%;
     max-height: 600px;
     object-fit: contain;
-    max-width: 100%;
 }
 
 .full-width-mode .main-image {
@@ -347,6 +383,7 @@ picture img,
     flex-direction: row;
     flex-wrap: nowrap;
     justify-content: center;
+    align-items: center;
     overflow-x: visible;
     overflow-y: visible;
     max-height: none;
@@ -354,16 +391,27 @@ picture img,
 }
 
 .full-width-mode .gallery-item {
-    flex: 1 1 0;
-    width: 0;
+    flex: 0 0 auto;
+    width: auto;
     min-width: 0;
-    max-width: none;
+    max-width: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.full-width-mode .gallery-item picture {
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .full-width-mode .gallery-image {
-    width: 100%;
+    width: auto;
     height: auto;
-    object-fit: cover;
+    max-width: 100%;
+    max-height: 600px;
+    object-fit: contain;
 }
 
 /* 全宽模式下只有多图（无文字内容）的样式 - Featured In 样式 */
@@ -413,14 +461,41 @@ picture img,
     border-radius: 0;
 }
 
-/* 左/右布局时的gallery-item - 适配高度和宽度 */
+/* 全宽模式 + gallery-only 模式：图片居中聚集，不分散 */
+.full-width-mode.gallery-only-mode {
+    padding: 40px 0px !important;
+}
+
+.full-width-mode.gallery-only-mode .product-gallery {
+    justify-content: center;
+    gap: 0;
+    flex-wrap: nowrap;
+    max-width: none;
+}
+
+.full-width-mode.gallery-only-mode .gallery-item {
+    flex: 0 0 auto;
+    width: auto;
+    max-width: 50%;
+    min-width: 0;
+}
+
+.full-width-mode.gallery-only-mode .gallery-image {
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 600px;
+    object-fit: contain;
+    padding: 0 25px;
+}
+
+/* 左/右布局时的gallery-item - 保持实际尺寸 */
 .image-position-left .gallery-item,
 .image-position-right .gallery-item {
     flex: 1 1 auto;
     width: auto;
     min-width: 200px;
     max-width: 400px;
-    min-height: 500px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -429,8 +504,6 @@ picture img,
 /* gallery-item内的picture元素自适应 */
 .image-position-left .gallery-item picture,
 .image-position-right .gallery-item picture {
-    width: 100%;
-    height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -468,11 +541,10 @@ picture img,
 
 .image-position-left .gallery-image,
 .image-position-right .gallery-image {
-    width: 100%;
+    width: auto;
     height: auto;
-    min-height: 500px;
-    max-height: 600px;
     max-width: 100%;
+    max-height: 600px;
     object-fit: contain;
     border-radius: 8px;
 }
@@ -652,14 +724,13 @@ picture img,
         object-fit: contain;
     }
     
-    /* 移动端gallery图片 - 自适应容器宽度 */
+    /* 移动端gallery图片 - 保持实际尺寸 */
     .image-position-left .gallery-image,
     .image-position-right .gallery-image {
-        width: 100%;                 /* ✅ 填满gallery-item */
+        width: auto;
         height: auto;
-        min-height: 200px;           /* ✅ 保持最小高度 */
-        max-height: 300px;
         max-width: 100%;
+        max-height: 300px;
         object-fit: contain;
     }
     
@@ -703,6 +774,32 @@ picture img,
         max-width: none;
     }
     
+    /* 移动端全宽模式 + gallery-only 模式：图片居中 */
+    .full-width-mode.gallery-only-mode {
+        padding: 30px 0 !important;
+    }
+    
+    .full-width-mode.gallery-only-mode .product-gallery {
+        justify-content: center;
+        gap: 0;
+        flex-wrap: nowrap;
+    }
+    
+    .full-width-mode.gallery-only-mode .gallery-item {
+        flex: 0 0 auto;
+        width: auto;
+        max-width: 50%;
+        min-width: 0;
+    }
+    
+    .full-width-mode.gallery-only-mode .gallery-image {
+        width: auto;
+        height: auto;
+        max-width: 100%;
+        max-height: 400px;
+        object-fit: contain;
+    }
+    
     .content-divider {
         width: 60px;
     }
@@ -716,14 +813,25 @@ picture img,
         padding: 0;
     }
     
-    /* 移动端全宽多图模式 - 保持不换行 */
+    /* 移动端全宽多图模式 - 居中显示 */
     .full-width-mode .product-gallery {
         flex-wrap: nowrap;
+        justify-content: center;
     }
     
     .full-width-mode .gallery-item {
-        flex: 1 1 0;
+        flex: 0 0 auto;
+        width: auto;
         min-width: 0;
+        max-width: 50%;
+    }
+    
+    .full-width-mode .gallery-image {
+        width: auto;
+        height: auto;
+        max-width: 100%;
+        max-height: 400px;
+        object-fit: contain;
     }
     
     .full-width-mode .main-image {
@@ -751,19 +859,28 @@ picture img,
     
     .image-position-left .gallery-image,
     .image-position-right .gallery-image {
-        min-height: 150px;
         max-height: 250px;
     }
     
-    /* 全宽多图模式 - 小屏幕保持不换行，自适应宽度 */
+    /* 全宽多图模式 - 小屏幕居中显示 */
     .full-width-mode .product-gallery {
         flex-wrap: nowrap;
+        justify-content: center;
     }
     
     .full-width-mode .gallery-item {
-        flex: 1 1 0;
-        width: 0;
+        flex: 0 0 auto;
+        width: auto;
         min-width: 0;
+        max-width: 50%;
+    }
+    
+    .full-width-mode .gallery-image {
+        width: auto;
+        height: auto;
+        max-width: 100%;
+        max-height: 300px;
+        object-fit: contain;
     }
     
     .full-width-mode .content-section:not(.content-only-mode .content-section) {
@@ -775,6 +892,32 @@ picture img,
     
     .full-width-mode .image-section::after {
         display: none;
+    }
+    
+    /* 小屏幕全宽模式 + gallery-only 模式：图片居中 */
+    .full-width-mode.gallery-only-mode {
+        padding: 20px 0 !important;
+    }
+    
+    .full-width-mode.gallery-only-mode .product-gallery {
+        justify-content: center;
+        gap: 0;
+        flex-wrap: nowrap;
+    }
+    
+    .full-width-mode.gallery-only-mode .gallery-item {
+        flex: 0 0 auto;
+        width: auto;
+        max-width: 50%;
+        min-width: 0;
+    }
+    
+    .full-width-mode.gallery-only-mode .gallery-image {
+        width: auto;
+        height: auto;
+        max-width: 100%;
+        max-height: 300px;
+        object-fit: contain;
     }
     
     /* 小屏幕纯文案模式 */

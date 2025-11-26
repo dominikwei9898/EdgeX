@@ -70,7 +70,12 @@ class EverShop_Content_Builder {
                 'icon' => '🖼️',
                 'description' => '支持单图/多图+文字，灵活布局',
                 'fields' => array(
-                    'title' => array('type' => 'text', 'label' => '模块名称（仅后台显示）', 'placeholder' => 'Banner', 'description' => '此标题仅用于后台识别模块，不会显示在前端'),
+                    // ========== 基础信息 ==========
+                    '_section_basic' => array('type' => 'section', 'label' => '📋 基础信息'),
+                    'title' => array('type' => 'text', 'label' => '模块名称', 'placeholder' => 'Banner', 'description' => '仅用于后台识别，不显示在前端'),
+                    
+                    // ========== 图片设置 ==========
+                    '_section_images' => array('type' => 'section', 'label' => '🖼️ 图片设置'),
                     'images' => array(
                         'type' => 'repeater',
                         'label' => '图片列表',
@@ -78,7 +83,7 @@ class EverShop_Content_Builder {
                         'description' => '支持单张或多张图片，多张图片将显示为横向画廊',
                         'fields' => array(
                             'image' => array('type' => 'image', 'label' => '图片 (桌面端)'),
-                            'mobile_image' => array('type' => 'image', 'label' => '图片 (移动端，可选)', 'placeholder' => '留空则使用桌面端图片'),
+                            'mobile_image' => array('type' => 'image', 'label' => '图片 (移动端，可选)'),
                             'alt_text' => array('type' => 'text', 'label' => '图片描述', 'placeholder' => 'Product Image'),
                         )
                     ),
@@ -92,37 +97,93 @@ class EverShop_Content_Builder {
                         ), 
                         'default' => 'full'
                     ),
-                    'content_title' => array('type' => 'textarea', 'label' => '主标题', 'placeholder' => '模块主标题', 'rows' => 2),
-                    'content_subtitle' => array('type' => 'textarea', 'label' => '副标题', 'placeholder' => '模块副标题', 'rows' => 2),
-                    'content_text' => array('type' => 'textarea', 'label' => '文案内容', 'placeholder' => '模块描述文字'),
-                    'button_text' => array('type' => 'text', 'label' => '按钮文字', 'placeholder' => 'Learn More'),
-                    'button_action' => array(
-                        'type' => 'select',
-                        'label' => '点击按钮动作',
-                        'options' => array(
-                            'none' => '无动作',
-                            'link' => '跳转链接',
-                            'scroll' => '滚动到指定位置'
-                        ),
-                        'default' => 'none'
-                    ),
-                    'button_link' => array('type' => 'url', 'label' => '跳转链接', 'show_if' => array('button_action' => array('link'))),
-                    'scroll_target' => array('type' => 'text', 'label' => '滚动目标 CSS 选择器', 'placeholder' => '#section-id', 'show_if' => array('button_action' => array('scroll'))),
-                    'background_color' => array('type' => 'color', 'label' => '背景颜色', 'default' => '#ffffff'),
-                    'title_color' => array('type' => 'color', 'label' => '标题文字颜色', 'default' => '#000000'),
-                    'content_color' => array('type' => 'color', 'label' => '正文文字颜色', 'default' => '#000000'),
+                    
+                    // ========== 文字内容 ==========
+                    '_section_content' => array('type' => 'section', 'label' => '✍️ 文字内容'),
+                    'content_title' => array('type' => 'textarea', 'label' => '主标题', 'placeholder' => '输入主标题文字', 'rows' => 2),
+                    'title_color' => array('type' => 'color', 'label' => '↑ 标题颜色', 'default' => '#000000'),
+                    
+                    'content_subtitle' => array('type' => 'textarea', 'label' => '副标题', 'placeholder' => '输入副标题文字（可选）', 'rows' => 2),
+                    'subtitle_color' => array('type' => 'color', 'label' => '↑ 副标题颜色', 'default' => '#666666'),
+                    
+                    'content_text' => array('type' => 'textarea', 'label' => '正文', 'placeholder' => '输入正文描述（可选）', 'rows' => 3),
+                    'content_color' => array('type' => 'color', 'label' => '↑ 正文颜色', 'default' => '#000000'),
+                    
                     'text_shadow' => array(
                         'type' => 'select',
-                        'label' => '文字阴影效果',
+                        'label' => '文字阴影',
                         'options' => array(
-                            'none' => '无阴影',
-                            'light' => '浅色阴影（适合深色背景）',
-                            'dark' => '深色阴影（适合浅色背景）'
+                            'none' => '无',
+                            'light' => '浅色阴影',
+                            'dark' => '深色阴影'
+                        ),
+                        'default' => 'none',
+                        'description' => '提升文字在复杂背景上的可读性'
+                    ),
+                    
+                    // ========== 按钮设置 ==========
+                    '_section_button' => array('type' => 'section', 'label' => '🔘 按钮设置'),
+                    'button_text' => array('type' => 'text', 'label' => '按钮文字', 'placeholder' => 'Learn More'),
+                    'button_bg_color' => array('type' => 'color', 'label' => '↑ 背景色', 'default' => '#000000'),
+                    'button_text_color' => array('type' => 'color', 'label' => '↑ 文字色', 'default' => '#ffffff'),
+                    'button_action' => array(
+                        'type' => 'select',
+                        'label' => '点击动作',
+                        'options' => array(
+                            'none' => '无',
+                            'link' => '跳转链接',
+                            'scroll' => '页内滚动'
                         ),
                         'default' => 'none'
                     ),
-                    'button_bg_color' => array('type' => 'color', 'label' => '按钮背景色', 'default' => '#000000'),
-                    'button_text_color' => array('type' => 'color', 'label' => '按钮文字色', 'default' => '#ffffff'),
+                    'button_link' => array('type' => 'url', 'label' => '链接地址', 'placeholder' => 'https://example.com', 'show_if' => array('button_action' => array('link'))),
+                    'scroll_target' => array('type' => 'text', 'label' => '滚动目标', 'placeholder' => '#section-id', 'show_if' => array('button_action' => array('scroll'))),
+                    
+                    // ========== 背景设置 ==========
+                    '_section_background' => array('type' => 'section', 'label' => '🎨 背景设置'),
+                    'background_color' => array('type' => 'text', 'label' => '背景颜色', 'placeholder' => '#ffffff 或 linear-gradient(...)', 'default' => '#ffffff', 'description' => '支持纯色或渐变色。手动输入优先级高于颜色选择器，若输入框为空则使用选择器的颜色'),
+                    'background_image' => array('type' => 'image', 'label' => '背景图片', 'description' => '可选，设置背景图片'),
+                    'background_size' => array(
+                        'type' => 'select',
+                        'label' => '图片填充方式',
+                        'options' => array(
+                            'cover' => '覆盖（图片填满容器，可能裁剪）',
+                            'contain' => '包含（完整显示图片，可能留白）',
+                            'auto' => '原始尺寸',
+                            '100% 100%' => '拉伸填满'
+                        ),
+                        'default' => 'cover',
+                        'show_if' => array('background_image' => array('!'))
+                    ),
+                    'background_position' => array(
+                        'type' => 'select',
+                        'label' => '图片位置',
+                        'options' => array(
+                            'center center' => '居中',
+                            'top center' => '顶部居中',
+                            'bottom center' => '底部居中',
+                            'center left' => '左侧居中',
+                            'center right' => '右侧居中',
+                            'top left' => '左上角',
+                            'top right' => '右上角',
+                            'bottom left' => '左下角',
+                            'bottom right' => '右下角'
+                        ),
+                        'default' => 'center center',
+                        'show_if' => array('background_image' => array('!'))
+                    ),
+                    'background_repeat' => array(
+                        'type' => 'select',
+                        'label' => '图片重复',
+                        'options' => array(
+                            'no-repeat' => '不重复',
+                            'repeat' => '平铺重复',
+                            'repeat-x' => '横向重复',
+                            'repeat-y' => '纵向重复'
+                        ),
+                        'default' => 'no-repeat',
+                        'show_if' => array('background_image' => array('!'))
+                    ),
                 )
             ),
             
@@ -132,7 +193,7 @@ class EverShop_Content_Builder {
                 'description' => '展示产品的核心卖点（2列布局）',
                 'fields' => array(
                     'title' => array('type' => 'text', 'label' => '模块标题', 'placeholder' => 'KEY BENEFITS'),
-                    'background_color' => array('type' => 'color', 'label' => '背景颜色', 'default' => '#f5f5f5'),
+                    'background_color' => array('type' => 'text', 'label' => '背景颜色', 'placeholder' => '', 'default' => '#f5f5f5', 'description' => ''),
                     'top_background_image' => array('type' => 'image', 'label' => '顶部背景装饰图（右上角）'),
                     'bottom_background_image' => array('type' => 'image', 'label' => '底部背景装饰图（左下角）'),
                     'benefits' => array(
@@ -154,7 +215,7 @@ class EverShop_Content_Builder {
                 'description' => '展示多个产品视频',
                 'fields' => array(
                     'title' => array('type' => 'text', 'label' => '模块标题', 'placeholder' => 'BURN, RECOVER, REPEAT WITH LIQUID L CARNITINE'),
-                    'background_color' => array('type' => 'color', 'label' => '背景颜色', 'default' => '#000000'),
+                    'background_color' => array('type' => 'text', 'label' => '背景颜色', 'placeholder' => '', 'default' => ''),
                     'videos' => array(
                         'type' => 'repeater',
                         'label' => '视频列表',
@@ -205,7 +266,7 @@ class EverShop_Content_Builder {
                 'fields' => array(
                     'html_content' => array('type' => 'textarea', 'label' => 'HTML 代码', 'rows' => 10),
                     'css_content' => array('type' => 'textarea', 'label' => 'CSS 样式（选填）', 'rows' => 5),
-                    'background_color' => array('type' => 'color', 'label' => '背景颜色', 'default' => '#ffffff'),
+                    'background_color' => array('type' => 'text', 'label' => '背景（支持纯色/渐变）', 'placeholder' => '#ffffff 或 linear-gradient(...)', 'default' => '#ffffff'),
                 )
             ),
         );
@@ -498,10 +559,11 @@ class EverShop_Content_Builder {
         }
         
         .edgex-modal-body {
-            padding: 30px;
+            padding: 25px 30px;
             overflow-y: auto;
             flex: 1 1 auto;
             min-height: 0;
+            background: #fafafa;
         }
         
         .edgex-modal-footer {
@@ -529,46 +591,208 @@ class EverShop_Content_Builder {
             border-color: #135e96 !important;
         }
         
+        /* 分组标题样式 - 优雅简约 */
+        .edgex-section-header {
+            margin: 25px 0 15px 0;
+            padding: 0 0 8px 0;
+            border-bottom: 2px solid #e5e7eb;
+            position: relative;
+        }
+        
+        .edgex-section-header:first-child {
+            margin-top: 0;
+        }
+        
+        .edgex-section-header::before {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 50px;
+            height: 2px;
+            background: #2271b1;
+        }
+        
+        .edgex-section-title {
+            margin: 0;
+            padding: 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1f2937;
+            letter-spacing: 0.3px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        /* 栅格布局系统 */
+        .edgex-field-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 16px;
+        }
+        
+        .edgex-field-row-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 16px;
+        }
+        
+        .edgex-field-row .edgex-field-group,
+        .edgex-field-row-3 .edgex-field-group {
+            margin-bottom: 0;
+        }
+        
         .edgex-field-group {
+            margin-bottom: 16px;
+        }
+        
+        /* 字段宽度控制 */
+        .edgex-field-width-full {
+            grid-column: 1 / -1;
+        }
+        
+        .edgex-field-width-half {
+            grid-column: span 1;
+        }
+        
+        .edgex-field-width-third {
+            grid-column: span 1;
+        }
+        
+        /* 连续的颜色选择器 - 更紧凑 */
+        .edgex-field-group + .edgex-field-group[data-field-name*="color"] {
+            margin-top: -8px;
             margin-bottom: 20px;
+        }
+        
+        /* 箭头标签的颜色字段 - 缩小标签尺寸 */
+        .edgex-field-group[data-field-name*="color"] .edgex-field-label {
+            font-size: 12px;
+            color: #6b7280;
+            font-weight: 500;
+        }
+        
+        /* 响应式：小屏幕下单列显示 */
+        @media (max-width: 768px) {
+            .edgex-field-row,
+            .edgex-field-row-3 {
+                grid-template-columns: 1fr;
+            }
         }
         
         .edgex-field-label {
             display: block;
-            font-weight: 600;
+            font-weight: 500;
             margin-bottom: 8px;
-            font-size: 14px;
+            font-size: 13px;
+            color: #374151;
+        }
+        
+        /* 为按钮文字字段添加视觉分组 */
+        .edgex-field-group[data-field-name="button_text"] {
+            margin-bottom: 10px;
         }
         
         .edgex-field-input,
         .edgex-field-textarea,
         .edgex-field-select {
             width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 10px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
             font-size: 14px;
+            transition: all 0.2s;
+            background: #ffffff;
+        }
+        
+        .edgex-field-input:focus,
+        .edgex-field-textarea:focus,
+        .edgex-field-select:focus {
+            outline: none;
+            border-color: #2271b1;
+            box-shadow: 0 0 0 3px rgba(34, 113, 177, 0.08);
         }
         
         .edgex-field-textarea {
-            min-height: 100px;
-            font-family: monospace;
+            min-height: 80px;
+            font-family: inherit;
+            line-height: 1.5;
+            resize: vertical;
+        }
+        
+        .edgex-repeater-wrapper {
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            background: #f9fafb;
+            overflow: hidden;
+        }
+        
+        .edgex-repeater-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .edgex-repeater-header:hover {
+            background: #f9fafb;
+        }
+        
+        .edgex-repeater-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .edgex-repeater-count {
+            background: #2271b1;
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .edgex-repeater-toggle {
+            font-size: 14px;
+            color: #6b7280;
+            transition: transform 0.2s;
+        }
+        
+        .edgex-repeater-toggle.collapsed {
+            transform: rotate(-90deg);
         }
         
         .edgex-repeater-items {
-            border: 1px solid #ddd;
-            border-radius: 4px;
             padding: 15px;
-            background: #f9f9f9;
+            background: #f9fafb;
+        }
+        
+        .edgex-repeater-items.collapsed {
+            display: none;
         }
         
         .edgex-repeater-item {
             background: #fff;
             padding: 15px;
             margin-bottom: 10px;
-            border-radius: 4px;
-            border: 1px solid #ddd;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
             position: relative;
+        }
+        
+        .edgex-repeater-item:last-child {
+            margin-bottom: 0;
         }
         
         .edgex-repeater-item-header {
@@ -577,21 +801,32 @@ class EverShop_Content_Builder {
             align-items: center;
             margin-bottom: 15px;
             padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .edgex-repeater-item-header strong {
+            font-size: 13px;
+            color: #374151;
         }
         
         .edgex-repeater-remove {
-            background: #dc3232;
+            background: #dc3545;
             color: #fff;
             border: none;
             padding: 6px 12px;
             border-radius: 4px;
             cursor: pointer;
             font-size: 12px;
+            transition: all 0.2s;
+        }
+        
+        .edgex-repeater-remove:hover {
+            background: #c82333;
         }
         
         .edgex-repeater-add {
             margin-top: 10px;
+            width: 100%;
         }
         
         /* 条件显示字段过渡效果 */
@@ -606,11 +841,130 @@ class EverShop_Content_Builder {
         
         /* 字段描述样式 */
         .edgex-field-description {
-            margin: 8px 0 0 0;
-            font-size: 12px;
-            color: #666;
-            font-style: italic;
+            margin: 6px 0 0 0;
+            font-size: 11px;
+            color: #6b7280;
             line-height: 1.4;
+        }
+        
+        /* 颜色选择器样式优化 - 标准color字段 */
+        input[type="color"].edgex-field-input {
+            width: 100px;
+            height: 40px;
+            padding: 4px;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        input[type="color"].edgex-field-input:hover {
+            border-color: #2271b1;
+            box-shadow: 0 2px 8px rgba(34, 113, 177, 0.15);
+        }
+        
+        input[type="color"].edgex-field-input::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        
+        input[type="color"].edgex-field-input::-webkit-color-swatch {
+            border: none;
+            border-radius: 4px;
+        }
+        
+        input[type="color"].edgex-field-input::-moz-color-swatch {
+            border: none;
+            border-radius: 4px;
+        }
+        
+        /* 背景颜色字段 - 横向布局 */
+        .edgex-color-with-text-horizontal {
+            display: grid;
+            grid-template-columns: 180px 1fr;
+            gap: 15px;
+            align-items: start;
+        }
+        
+        .edgex-inline-label {
+            display: block;
+            font-size: 11px;
+            color: #6b7280;
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+        
+        .edgex-color-picker-column {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .edgex-color-text-column {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .edgex-color-primary {
+            width: 100%;
+            height: 50px;
+            padding: 5px;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .edgex-color-primary:hover {
+            border-color: #2271b1;
+            box-shadow: 0 2px 8px rgba(34, 113, 177, 0.15);
+        }
+        
+        .edgex-color-primary:focus {
+            outline: none;
+            border-color: #2271b1;
+            box-shadow: 0 0 0 3px rgba(34, 113, 177, 0.1);
+        }
+        
+        .edgex-color-primary::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        
+        .edgex-color-primary::-webkit-color-swatch {
+            border: none;
+            border-radius: 4px;
+        }
+        
+        .edgex-color-primary::-moz-color-swatch {
+            border: none;
+            border-radius: 4px;
+        }
+        
+        .edgex-color-text-fallback {
+            width: 100%;
+            font-size: 13px;
+            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+            padding: 10px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            transition: all 0.2s;
+            background: #ffffff;
+        }
+        
+        .edgex-color-text-fallback:focus {
+            outline: none;
+            border-color: #2271b1;
+            box-shadow: 0 0 0 3px rgba(34, 113, 177, 0.08);
+        }
+        
+        .edgex-color-text-fallback::placeholder {
+            color: #9ca3af;
+            font-size: 11px;
+        }
+        
+        /* 响应式：小屏幕下垂直排列 */
+        @media (max-width: 768px) {
+            .edgex-color-with-text-horizontal {
+                grid-template-columns: 1fr;
+            }
         }
         </style>
         <?php

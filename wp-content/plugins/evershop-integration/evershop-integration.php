@@ -3,7 +3,7 @@
  * Plugin Name: EdgeX Content Builder
  * Plugin URI: https://github.com/dominikwei9898/EdgeX
  * Description: 为 EdgeX 主题和 WooCommerce 产品页面添加灵活的内容模块构建器。支持图文模块、视频轮播、客户评价、关键优势等多种内容块，无需第三方插件即可使用。
- * Version: 2.0.0
+ * Version: 2.1.1
  * Author: Dominik Wei
  * Author URI: https://github.com/dominikwei9898
  * License: MIT
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // 定义插件常量
-define('EVERSHOP_CONTENT_BUILDER_VERSION', '2.0.0');
+define('EVERSHOP_CONTENT_BUILDER_VERSION', '2.1.1');
 define('EVERSHOP_CONTENT_BUILDER_DIR', plugin_dir_path(__FILE__));
 define('EVERSHOP_CONTENT_BUILDER_URL', plugin_dir_url(__FILE__));
 

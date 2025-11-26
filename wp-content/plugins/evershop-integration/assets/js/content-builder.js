@@ -107,17 +107,37 @@
             }
         });
         
+        // Repeater 可折叠切换
+        $(document).on('click', '.edgex-repeater-header', function() {
+            const $items = $(this).next('.edgex-repeater-items');
+            const $toggle = $(this).find('.edgex-repeater-toggle');
+            
+            $items.slideToggle(200);
+            $toggle.toggleClass('collapsed');
+        });
+        
         // Repeater 添加项
         $(document).on('click', '.edgex-repeater-add', function() {
-            const container = $(this).prev('.edgex-repeater-items');
+            const $wrapper = $(this).prev('.edgex-repeater-wrapper');
+            const container = $wrapper.find('.edgex-repeater-items');
             const fieldName = $(this).data('field-name');
             const blockType = currentEditingIndex !== null ? contentBlocks[currentEditingIndex].type : '';
             
             if (blockTypesConfig[blockType]) {
                 const fields = findRepeaterFields(blockTypesConfig[blockType].fields, fieldName);
                 if (fields) {
-                    const itemHtml = generateRepeaterItemHtml(fieldName, fields, container.children().length);
+                    const itemHtml = generateRepeaterItemHtml(fieldName, fields, container.children('.edgex-repeater-item').length);
                     container.append(itemHtml);
+                    
+                    // 展开列表（如果是折叠状态）
+                    if (!container.is(':visible')) {
+                        container.slideDown(200);
+                        $wrapper.find('.edgex-repeater-toggle').removeClass('collapsed');
+                    }
+                    
+                    // 更新计数
+                    updateRepeaterCount(fieldName);
+                    
                     // 为新添加的项加载图片预览
                     loadImagePreviews();
                 }
@@ -126,7 +146,15 @@
         
         // Repeater 删除项
         $(document).on('click', '.edgex-repeater-remove', function() {
-            $(this).closest('.edgex-repeater-item').remove();
+            const $item = $(this).closest('.edgex-repeater-item');
+            const $wrapper = $item.closest('.edgex-repeater-wrapper');
+            const fieldName = $wrapper.find('.edgex-repeater-header').data('field-name');
+            
+            $item.slideUp(200, function() {
+                $(this).remove();
+                // 更新计数
+                updateRepeaterCount(fieldName);
+            });
         });
         
         // 媒体上传
@@ -147,9 +175,58 @@
                 const attachment = mediaUploader.state().get('selection').first().toJSON();
                 inputField.val(attachment.id);
                 preview.html('<img src="' + attachment.url + '" data-attachment-id="' + attachment.id + '" style="max-width: 200px; height: auto; margin-top: 10px; border-radius: 4px;">');
+                
+                // 触发条件字段更新（用于背景图片等字段）
+                updateConditionalFields();
             });
             
             mediaUploader.open();
+        });
+        
+        // 颜色选择器主输入 - 改变时同步到文本框
+        $(document).on('change input', '.edgex-color-primary', function() {
+            const fieldName = $(this).data('field-name');
+            const selectedColor = $(this).val();
+            const $textInput = $('.edgex-color-text-fallback[data-field-name="' + fieldName + '"]');
+            
+            console.log('[EdgeX] 颜色选择器变化:', fieldName, '=', selectedColor);
+            
+            if ($textInput.length) {
+                const currentTextValue = $textInput.val().trim();
+                
+                // 同步条件：文本框为空 或 文本框是纯色（不是渐变色等复杂值）
+                const isEmptyOrSimpleColor = !currentTextValue || 
+                    (!currentTextValue.includes('gradient') && 
+                     !currentTextValue.includes('rgb') && 
+                     !currentTextValue.includes('hsl'));
+                
+                if (isEmptyOrSimpleColor) {
+                    $textInput.val(selectedColor);
+                    console.log('[EdgeX] 已同步到文本框');
+                } else {
+                    console.log('[EdgeX] 文本框包含复杂颜色值，不同步');
+                }
+            }
+        });
+        
+        // 文本框输入 - 如果是纯色，同步到颜色选择器
+        $(document).on('input blur', '.edgex-color-text-fallback', function() {
+            const fieldName = $(this).data('field-name');
+            const textValue = $(this).val().trim();
+            const $colorPicker = $('.edgex-color-primary[data-field-name="' + fieldName + '"]');
+            
+            console.log('[EdgeX] 文本框输入:', fieldName, '=', textValue);
+            
+            // 如果输入的是有效的十六进制颜色（6位或3位），同步到颜色选择器
+            if (textValue && textValue.match(/^#[0-9A-Fa-f]{6}$/)) {
+                $colorPicker.val(textValue);
+                console.log('[EdgeX] 已同步到颜色选择器 (6位)');
+            } else if (textValue && textValue.match(/^#[0-9A-Fa-f]{3}$/)) {
+                // 3位转6位
+                const fullColor = '#' + textValue[1] + textValue[1] + textValue[2] + textValue[2] + textValue[3] + textValue[3];
+                $colorPicker.val(fullColor);
+                console.log('[EdgeX] 已同步到颜色选择器 (3位转6位):', fullColor);
+            }
         });
     }
     
@@ -200,6 +277,11 @@
         
         for (const fieldName in fields) {
             const field = fields[fieldName];
+            
+            // 跳过 section 字段（它们只是 UI 装饰）
+            if (field.type === 'section') {
+                continue;
+            }
             
             if (field.type === 'repeater') {
                 data[fieldName] = [];
@@ -290,16 +372,146 @@
     
     function generateBlockForm(fields, data) {
         let html = '';
+        const fieldNames = Object.keys(fields);
+        let i = 0;
         
-        for (const fieldName in fields) {
+        while (i < fieldNames.length) {
+            const fieldName = fieldNames[i];
             const field = fields[fieldName];
-            const value = data[fieldName] || field.default || '';
             
-            // 构建条件显示的 data 属性
-            let conditionalAttr = '';
-            let initialStyle = '';
+            // 检查是否是按钮文字、背景色、文字色的三列组合
+            if (fieldName === 'button_text') {
+                const field2Name = fieldNames[i + 1];
+                const field3Name = fieldNames[i + 2];
+                
+                if (field2Name === 'button_bg_color' && field3Name === 'button_text_color') {
+                    html += '<div class="edgex-field-row-3">';
+                    html += generateFieldHtml(fieldName, field, data, fields);
+                    html += generateFieldHtml(field2Name, fields[field2Name], data, fields);
+                    html += generateFieldHtml(field3Name, fields[field3Name], data, fields);
+                    html += '</div>';
+                    i += 3;
+                    continue;
+                }
+            }
             
-            if (field.show_if) {
+            // 检查是否可以与下一个字段组合成2列栅格布局
+            const nextFieldName = fieldNames[i + 1];
+            const nextField = nextFieldName ? fields[nextFieldName] : null;
+            const canGrid = shouldUseGrid(field, nextField, fieldName, nextFieldName);
+            
+            if (canGrid && nextField) {
+                // 使用2列栅格布局
+                html += '<div class="edgex-field-row">';
+                html += generateFieldHtml(fieldName, field, data, fields);
+                html += generateFieldHtml(nextFieldName, nextField, data, fields);
+                html += '</div>';
+                i += 2;
+                continue;
+            }
+            
+            // 单独显示字段
+            html += generateFieldHtml(fieldName, field, data, fields);
+            i++;
+        }
+        
+        return html;
+    }
+    
+    /**
+     * 判断两个字段是否应该使用栅格布局并排显示
+     */
+    function shouldUseGrid(field1, field2, name1, name2) {
+        if (!field2) return false;
+        
+        // 跳过 section、repeater
+        const excludeTypes = ['section', 'repeater'];
+        if (excludeTypes.includes(field1.type) || excludeTypes.includes(field2.type)) {
+            return false;
+        }
+        
+        // 特殊组合规则
+        
+        // 1. 主标题 + 标题颜色
+        if ((name1 === 'content_title' && name2 === 'title_color') ||
+            (name1 === 'title' && name2 === 'title_color')) {
+            return true;
+        }
+        
+        // 2. 副标题 + 副标题颜色
+        if (name1 === 'content_subtitle' && name2 === 'subtitle_color') {
+            return true;
+        }
+        
+        // 3. 正文 + 正文颜色
+        if (name1 === 'content_text' && name2 === 'content_color') {
+            return true;
+        }
+        
+        // 3. 按钮文字、背景色、文字色会用3列布局，这里跳过
+        if (name1 === 'button_text' || name1 === 'button_bg_color' || name1 === 'button_text_color') {
+            return false;
+        }
+        
+        // 4. 按钮动作相关字段
+        if (name1 === 'button_action' && name2 === 'button_link') {
+            return true;
+        }
+        if (name1 === 'button_action' && name2 === 'scroll_target') {
+            return true;
+        }
+        
+        
+        // 背景颜色字段单独处理（有特殊布局）
+        if (name1 === 'background_color' || name2 === 'background_color') {
+            return false;
+        }
+        
+        // 大文本框不并排
+        if (field1.type === 'textarea' && (!field1.rows || field1.rows > 2)) {
+            return false;
+        }
+        if (field2.type === 'textarea' && (!field2.rows || field2.rows > 2)) {
+            return false;
+        }
+        
+        // 颜色字段可以并排
+        if (field1.type === 'color' && field2.type === 'color') {
+            return true;
+        }
+        
+        // select和color可以并排
+        if ((field1.type === 'select' && field2.type === 'color') ||
+            (field1.type === 'color' && field2.type === 'select')) {
+            return true;
+        }
+        
+        // 短文本和其他小字段可以并排
+        if ((field1.type === 'text' || field1.type === 'url' || field1.type === 'number') &&
+            (field2.type === 'text' || field2.type === 'url' || field2.type === 'number' || field2.type === 'select' || field2.type === 'color')) {
+            return true;
+        }
+        
+        // select和select可以并排
+        if (field1.type === 'select' && field2.type === 'select') {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * 生成单个字段的HTML
+     */
+    function generateFieldHtml(fieldName, field, data, allFields) {
+        let html = '';
+        const value = data[fieldName] || field.default || '';
+        
+        // 构建条件显示的 data 属性
+        let conditionalAttr = '';
+        let initialStyle = '';
+        
+        if (field.show_if) {
                 conditionalAttr = ' data-show-if="' + escapeHtml(JSON.stringify(field.show_if)) + '"';
                 
                 // 检查初始状态是否应该隐藏
@@ -308,8 +520,8 @@
                     const allowedValues = field.show_if[conditionField];
                     // 获取条件字段的当前值（考虑默认值）
                     let currentValue = data[conditionField];
-                    if (!currentValue && fields[conditionField] && fields[conditionField].default) {
-                        currentValue = fields[conditionField].default;
+                    if (!currentValue && allFields && allFields[conditionField] && allFields[conditionField].default) {
+                        currentValue = allFields[conditionField].default;
                     }
                     if (!currentValue) {
                         currentValue = '';
@@ -317,9 +529,17 @@
                     
                     console.log('[EdgeX] 初始检查 - 字段:', fieldName, '条件:', conditionField, '当前值:', currentValue, '允许值:', allowedValues);
                     
-                    if (!allowedValues.includes(currentValue)) {
-                        shouldHide = true;
-                        break;
+                    // 特殊条件：'!' 表示字段必须有值（不为空）
+                    if (allowedValues.length === 1 && allowedValues[0] === '!') {
+                        if (!currentValue || currentValue === '' || currentValue === '0') {
+                            shouldHide = true;
+                            break;
+                        }
+                    } else {
+                        if (!allowedValues.includes(currentValue)) {
+                            shouldHide = true;
+                            break;
+                        }
                     }
                 }
                 
@@ -329,13 +549,53 @@
                 }
             }
             
+            // 分组标题（Section Header）
+            if (field.type === 'section') {
+                html += '<div class="edgex-section-header" data-field-name="' + fieldName + '">';
+                html += '<h4 class="edgex-section-title">' + field.label + '</h4>';
+                html += '</div>';
+                return html;
+            }
+            
             html += '<div class="edgex-field-group"' + conditionalAttr + initialStyle + ' data-field-name="' + fieldName + '">';
             html += '<label class="edgex-field-label">' + field.label + '</label>';
             
             switch (field.type) {
                 case 'text':
                 case 'url':
-                    html += '<input type="' + field.type + '" class="edgex-field-input" name="' + fieldName + '" value="' + escapeHtml(value) + '" placeholder="' + (field.placeholder || '') + '">';
+                    // 检查是否是背景颜色字段（需要颜色选择器为主 + 文本框为辅）
+                    if (fieldName === 'background_color' || (fieldName.includes('background') && fieldName.includes('color'))) {
+                        // 提取纯色值或使用默认值
+                        let colorValue = field.default || '#ffffff';
+                        let textValue = value || '';
+                        
+                        if (textValue) {
+                            // 如果文本框有值且是十六进制颜色，同步到颜色选择器
+                            if (textValue.match(/^#[0-9A-Fa-f]{6}$/)) {
+                                colorValue = textValue;
+                            } else if (textValue.match(/^#[0-9A-Fa-f]{3}$/)) {
+                                // 3位十六进制转6位
+                                colorValue = '#' + textValue[1] + textValue[1] + textValue[2] + textValue[2] + textValue[3] + textValue[3];
+                            }
+                            // 如果是渐变色等复杂值，colorValue 保持为默认值，文本框显示复杂值
+                        } else {
+                            // 如果文本框为空，使用默认颜色
+                            textValue = colorValue;
+                        }
+                        
+                        html += '<div class="edgex-color-with-text-horizontal">';
+                        html += '<div class="edgex-color-picker-column">';
+                        html += '<label class="edgex-inline-label">选择颜色</label>';
+                        html += '<input type="color" class="edgex-field-input edgex-color-primary" data-field-name="' + fieldName + '" value="' + colorValue + '">';
+                        html += '</div>';
+                        html += '<div class="edgex-color-text-column">';
+                        html += '<label class="edgex-inline-label">或输入代码（支持渐变）</label>';
+                        html += '<input type="text" class="edgex-field-input edgex-color-text-fallback" name="' + fieldName + '" value="' + escapeHtml(textValue) + '" placeholder="' + (field.placeholder || '#ffffff 或 linear-gradient(...)') + '" data-field-name="' + fieldName + '">';
+                        html += '</div>';
+                        html += '</div>';
+                    } else {
+                        html += '<input type="' + field.type + '" class="edgex-field-input" name="' + fieldName + '" value="' + escapeHtml(value) + '" placeholder="' + (field.placeholder || '') + '">';
+                    }
                     
                     // 添加字段描述
                     if (field.description) {
@@ -387,6 +647,15 @@
                     break;
                     
                 case 'repeater':
+                    const itemCount = Array.isArray(value) ? value.length : 0;
+                    html += '<div class="edgex-repeater-wrapper">';
+                    html += '<div class="edgex-repeater-header" data-field-name="' + fieldName + '">';
+                    html += '<div class="edgex-repeater-title">';
+                    html += field.label || '列表项';
+                    html += '<span class="edgex-repeater-count">' + itemCount + '</span>';
+                    html += '</div>';
+                    html += '<span class="edgex-repeater-toggle">▼</span>';
+                    html += '</div>';
                     html += '<div class="edgex-repeater-items">';
                     
                     if (Array.isArray(value) && value.length > 0) {
@@ -396,12 +665,12 @@
                     }
                     
                     html += '</div>';
+                    html += '</div>';
                     html += '<button type="button" class="button edgex-repeater-add" data-field-name="' + fieldName + '">' + (field.button_label || '+ 添加项') + '</button>';
                     break;
             }
             
             html += '</div>';
-        }
         
         return html;
     }
@@ -462,6 +731,15 @@
         return null;
     }
     
+    /**
+     * 更新Repeater计数显示
+     */
+    function updateRepeaterCount(fieldName) {
+        const $wrapper = $('.edgex-repeater-header[data-field-name="' + fieldName + '"]').closest('.edgex-repeater-wrapper');
+        const count = $wrapper.find('.edgex-repeater-item').length;
+        $wrapper.find('.edgex-repeater-count').text(count);
+    }
+    
     function saveBlock() {
         console.log('[EdgeX] saveBlock 被调用');
         
@@ -485,6 +763,11 @@
             
             if (!fieldName) return;
             
+            // 跳过 section 字段（它们只是 UI 装饰）
+            if (fieldName.startsWith('_section_')) {
+                return;
+            }
+            
             // 跳过 repeater 字段（下面单独处理）
             if (blockConfig.fields[fieldName] && blockConfig.fields[fieldName].type === 'repeater') {
                 return;
@@ -499,7 +782,18 @@
             }
             
             if ($input.length > 0) {
-                const fieldValue = $input.val();
+                let fieldValue = $input.val();
+                
+                // 特殊处理：背景颜色字段，如果文本框为空，使用颜色选择器的值
+                if ((fieldName === 'background_color' || (fieldName.includes('background') && fieldName.includes('color'))) && 
+                    (!fieldValue || fieldValue.trim() === '')) {
+                    const $colorPicker = $(this).find('.edgex-color-primary[data-field-name="' + fieldName + '"]');
+                    if ($colorPicker.length > 0) {
+                        fieldValue = $colorPicker.val();
+                        console.log('[EdgeX] 文本框为空，使用颜色选择器的值:', fieldValue);
+                    }
+                }
+                
                 formData[fieldName] = fieldValue;
                 console.log('[EdgeX] 保存字段:', fieldName, '=', fieldValue);
             }
@@ -675,10 +969,18 @@
                                 ', 条件: ' + conditionField + '=' + currentValue + 
                                 ', 允许值: ' + JSON.stringify(allowedValues));
                     
-                    // 检查当前值是否在允许的值列表中
-                    if (!allowedValues.includes(currentValue)) {
-                        shouldShow = false;
-                        break;
+                    // 特殊条件：'!' 表示字段必须有值（不为空）
+                    if (allowedValues.length === 1 && allowedValues[0] === '!') {
+                        if (!currentValue || currentValue === '' || currentValue === '0') {
+                            shouldShow = false;
+                            break;
+                        }
+                    } else {
+                        // 检查当前值是否在允许的值列表中
+                        if (!allowedValues.includes(currentValue)) {
+                            shouldShow = false;
+                            break;
+                        }
                     }
                 } else {
                     // 如果找不到条件字段，默认隐藏

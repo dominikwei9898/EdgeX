@@ -30,7 +30,7 @@ if ($bottom_bg_image) {
 }
 ?>
 
-<section class="edgex-key-benefits" style="background-color: <?php echo esc_attr($background_color); ?>;">
+<section class="edgex-key-benefits" style="background: <?php echo esc_attr($background_color); ?>;">
     
     <!-- 顶部背景装饰 -->
     <?php if ($top_bg_url) : ?>
