@@ -1,0 +1,130 @@
+/* Cookie Consent Banner */
+.cookie-consent-banner {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: #111; /* Darker black */
+    color: #fff;
+    padding: 1.5rem 2rem;
+    z-index: 9999;
+    display: none; /* Hidden by default, shown by JS */
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+    border-top: 1px solid #222;
+    font-family: inherit;
+}
+
+.cookie-consent-banner.show {
+    display: flex;
+    justify-content: center; /* Center content */
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2rem;
+    animation: slideUp 0.5s ease-out forwards;
+}
+
+/* Inner container to limit width on large screens */
+.cookie-consent-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    gap: 1.5rem;
+}
+
+.cookie-consent-content {
+    flex: 1;
+    min-width: 280px;
+}
+
+.cookie-consent-content p {
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #e5e5e5;
+}
+
+.cookie-consent-content a {
+    color: #fff;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    font-weight: 500;
+    transition: opacity 0.2s;
+}
+
+.cookie-consent-content a:hover {
+    opacity: 0.8;
+}
+
+.cookie-consent-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.cookie-btn {
+    padding: 10px 24px;
+    border: 1px solid transparent;
+    border-radius: 0; /* Sharper edges for modern look */
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.cookie-btn-accept {
+    background-color: #fff;
+    color: #000;
+    border-color: #fff;
+}
+
+.cookie-btn-accept:hover {
+    background-color: #e5e5e5;
+    border-color: #e5e5e5;
+    transform: translateY(-1px);
+}
+
+.cookie-btn-reject {
+    background-color: transparent;
+    border-color: #666;
+    color: #ccc;
+}
+
+.cookie-btn-reject:hover {
+    border-color: #fff;
+    color: #fff;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+@media (max-width: 768px) {
+    .cookie-consent-banner {
+        padding: 1.25rem;
+    }
+
+    .cookie-consent-wrapper {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .cookie-consent-actions {
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .cookie-btn {
+        flex: 1;
+        text-align: center;
+        padding: 12px 20px;
+    }
+}

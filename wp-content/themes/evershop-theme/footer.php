@@ -107,6 +107,8 @@ if (!defined('ABSPATH')) {
     </div><!-- .wrapper -->
 </div><!-- #app -->
 
+<?php get_template_part('template-parts/cookie-banner'); ?>
+
 <?php wp_footer(); ?>
 
 </body>
