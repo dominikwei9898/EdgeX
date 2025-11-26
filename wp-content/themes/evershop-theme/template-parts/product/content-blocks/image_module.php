@@ -12,6 +12,7 @@ $title = isset($block_data['title']) ? $block_data['title'] : '';
 $images = isset($block_data['images']) ? $block_data['images'] : array();
 $image_position = isset($block_data['image_position']) ? $block_data['image_position'] : 'full';
 $content_title = isset($block_data['content_title']) ? $block_data['content_title'] : '';
+$content_subtitle = isset($block_data['content_subtitle']) ? $block_data['content_subtitle'] : '';
 $content_text = isset($block_data['content_text']) ? $block_data['content_text'] : '';
 $button_text = isset($block_data['button_text']) ? $block_data['button_text'] : '';
 $button_action = isset($block_data['button_action']) ? $block_data['button_action'] : 'none';
@@ -43,13 +44,14 @@ if (!is_array($images)) {
 // 判断图片数量（多图模式）
 $image_count = count($images);
 $has_gallery = $image_count > 1;
-$has_content = !empty($content_title) || !empty($content_text) || !empty($button_text);
+$has_content = !empty($content_title) || !empty($content_subtitle) || !empty($content_text) || !empty($button_text);
 $has_images = $image_count > 0;
 $content_only = !$has_images && $has_content;
+$gallery_only = $has_gallery && !$has_content && $image_position === 'full';
 
 ?>
 
-<section class="edgex-image-module <?php echo $has_gallery ? 'gallery-mode' : 'single-mode'; ?> <?php echo $image_position === 'full' ? 'full-width-mode' : ''; ?> <?php echo $content_only ? 'content-only-mode' : ''; ?>" 
+<section class="edgex-image-module <?php echo $has_gallery ? 'gallery-mode' : 'single-mode'; ?> <?php echo $image_position === 'full' ? 'full-width-mode' : ''; ?> <?php echo $content_only ? 'content-only-mode' : ''; ?> <?php echo $gallery_only ? 'gallery-only-mode' : ''; ?>" 
          style="background-color: <?php echo esc_attr($background_color); ?>;">
     
     <div class="image-module-wrapper image-position-<?php echo esc_attr($image_position); ?>">
@@ -121,7 +123,11 @@ $content_only = !$has_images && $has_content;
         <div class="content-section">
             <div class="content-inner">
                 <?php if ($content_title) : ?>
-                    <h3 class="content-title" style="color: <?php echo esc_attr($title_color); ?>; <?php echo $title_shadow_style; ?>"><?php echo esc_html($content_title); ?></h3>
+                    <h2 class="content-title" style="color: <?php echo esc_attr($title_color); ?>; <?php echo $title_shadow_style; ?>"><?php echo nl2br(esc_html($content_title)); ?></h2>
+                <?php endif; ?>
+                
+                <?php if ($content_subtitle) : ?>
+                    <h4 class="content-subtitle" style="color: <?php echo esc_attr($title_color); ?>; <?php echo $title_shadow_style; ?>"><?php echo nl2br(esc_html($content_subtitle)); ?></h4>
                 <?php endif; ?>
                 
                 <?php if ($content_text) : ?>
@@ -360,6 +366,53 @@ picture img,
     object-fit: cover;
 }
 
+/* 全宽模式下只有多图（无文字内容）的样式 - Featured In 样式 */
+.gallery-only-mode {
+    padding: 33px 15% !important;
+}
+
+.gallery-only-mode .image-module-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.gallery-only-mode .product-gallery {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 33px 3%;
+    width: 100%;
+    padding: 0;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.gallery-only-mode .gallery-item {
+    flex: 0 1 calc((100% - 9%) / 4);
+    max-width: 200px;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.gallery-only-mode .gallery-item picture {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.gallery-only-mode .gallery-image {
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    object-fit: contain;
+    border-radius: 0;
+}
+
 /* 左/右布局时的gallery-item - 适配高度和宽度 */
 .image-position-left .gallery-item,
 .image-position-right .gallery-item {
@@ -453,14 +506,25 @@ picture img,
     gap: 0;
 }
 
-/* 文案标题样式 */
+/* 文案标题样式 - H2 */
 .content-title {
     font-size: 26px;
     font-weight: bold;
-    margin: 0 0 15px 0;
+    margin: 0 0 10px 0;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     line-height: 1.3;
+    color: #000;
+    font-family: DDCHardware, 'Arial Black', 'Arial Bold', Arial, sans-serif;
+}
+
+/* 文案副标题样式 - H4 */
+.content-subtitle {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 15px 0;
+    letter-spacing: 0.3px;
+    line-height: 1.4;
     color: #000;
     font-family: DDCHardware, 'Arial Black', 'Arial Bold', Arial, sans-serif;
 }
@@ -617,8 +681,26 @@ picture img,
         font-size: 20px;
     }
     
+    .content-subtitle {
+        font-size: 16px;
+    }
+    
     .content-text {
         font-size: 14px;
+    }
+    
+    /* 移动端gallery-only模式调整 */
+    .gallery-only-mode {
+        padding: 20px 5% !important;
+    }
+    
+    .gallery-only-mode .product-gallery {
+        gap: 20px 3%;
+    }
+    
+    .gallery-only-mode .gallery-item {
+        flex: 0 1 calc((100% - 3%) / 2);
+        max-width: none;
     }
     
     .content-divider {

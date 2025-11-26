@@ -92,7 +92,8 @@ class EverShop_Content_Builder {
                         ), 
                         'default' => 'full'
                     ),
-                    'content_title' => array('type' => 'text', 'label' => '文案标题', 'placeholder' => '模块标题'),
+                    'content_title' => array('type' => 'textarea', 'label' => '主标题', 'placeholder' => '模块主标题', 'rows' => 2),
+                    'content_subtitle' => array('type' => 'textarea', 'label' => '副标题', 'placeholder' => '模块副标题', 'rows' => 2),
                     'content_text' => array('type' => 'textarea', 'label' => '文案内容', 'placeholder' => '模块描述文字'),
                     'button_text' => array('type' => 'text', 'label' => '按钮文字', 'placeholder' => 'Learn More'),
                     'button_action' => array(
