@@ -62,18 +62,41 @@ if (empty($videos) || !is_array($videos)) {
                         
                         $valid_video_count++;
                         $video_id = 'video-' . $valid_video_count;
+                        
+                        // 获取文件扩展名并确定 MIME 类型
+                        $path_info = parse_url($video_url, PHP_URL_PATH);
+                        $file_ext = strtolower(pathinfo($path_info, PATHINFO_EXTENSION));
+                        $mime_type = 'video/mp4'; // 默认
+                        
+                        switch ($file_ext) {
+                            case 'webm':
+                                $mime_type = 'video/webm';
+                                break;
+                            case 'ogg':
+                            case 'ogv':
+                                $mime_type = 'video/ogg';
+                                break;
+                            case 'mov':
+                                $mime_type = 'video/quicktime';
+                                break;
+                        }
                     ?>
                     <div class="product-video-item" data-video-url="<?php echo esc_attr($video_url); ?>" data-video-id="<?php echo esc_attr($video_id); ?>">
                         <div class="product-video-container">
+                            <!-- 加载动画 -->
+                            <div class="video-loader">
+                                <div class="spinner"></div>
+                            </div>
+                            
                             <video 
-                                class="product-video"
+                                class="product-video lazy-video"
                                 playsinline
                                 muted
-                                preload="metadata"
+                                preload="none"
                                 loop
                                 data-video-id="<?php echo esc_attr($video_id); ?>"
                             >
-                                <source src="<?php echo esc_url($video_url); ?>" type="video/mp4">
+                                <source data-src="<?php echo esc_url($video_url); ?>" type="<?php echo esc_attr($mime_type); ?>">
                                 您的浏览器不支持视频播放。
                             </video>
                             
@@ -213,6 +236,30 @@ if (empty($videos) || !is_array($videos)) {
     bottom: 16px;
     right: 16px;
     z-index: 3;
+}
+
+/* 加载动画 */
+.video-loader {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    pointer-events: none;
+    display: none;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }
 
 .control-button {
@@ -359,6 +406,30 @@ if (empty($videos) || !is_array($videos)) {
         return;
     }
     
+    // 懒加载视频观察器
+    const videoObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const video = entry.target;
+                const source = video.querySelector('source');
+                
+                if (source && source.dataset.src && !source.src) {
+                    source.src = source.dataset.src;
+                    video.load(); // 触发加载
+                    
+                    // 为了显示第一帧，我们需要 preload="metadata" 生效
+                    // 但 load() 之后，浏览器会自动处理
+                }
+                
+                // 只要开始处理了，就停止观察
+                observer.unobserve(video);
+            }
+        });
+    }, {
+        rootMargin: '200px 0px', // 提前 200px 加载
+        threshold: 0.01
+    });
+
     // 检查滚动位置，显示/隐藏箭头
     function checkScrollPosition() {
         // 只在移动端（< 768px）显示箭头
@@ -421,20 +492,66 @@ if (empty($videos) || !is_array($videos)) {
         const muteBtn = item.querySelector('.mute-toggle');
         const mutedIcon = item.querySelector('.muted-icon');
         const unmutedIcon = item.querySelector('.unmuted-icon');
+        const loader = item.querySelector('.video-loader');
         
         if (!video || !playBtn) return;
         
+        // 注册懒加载
+        if (video.classList.contains('lazy-video')) {
+            videoObserver.observe(video);
+        }
+        
         let isPlaying = false;
         let isMuted = true;
+        
+        // 视频状态监听，用于显示/隐藏 Loading
+        video.addEventListener('loadstart', () => {
+            // 开始加载时，如果用户已经点击了播放（或者正在尝试加载metadata），可以显示loader
+            // 但通常 metadata 加载很快，只在 waiting 时显示更好
+        });
+        
+        video.addEventListener('waiting', () => {
+            if (loader) loader.style.display = 'block';
+        });
+        
+        video.addEventListener('canplay', () => {
+            if (loader) loader.style.display = 'none';
+        });
+        
+        video.addEventListener('playing', () => {
+            if (loader) loader.style.display = 'none';
+            isPlaying = true;
+            if (playBtn) playBtn.style.display = 'none';
+            if (controls) controls.style.display = 'block';
+        });
         
         // 播放/暂停处理
         function handlePlayPause(e) {
             if (e) e.stopPropagation();
             
-            if (isPlaying) {
-                video.pause();
+            // 如果视频还没有 src (比如 IntersectionObserver 还没触发，虽然不太可能)，强制加载
+            const source = video.querySelector('source');
+            if (source && !source.src && source.dataset.src) {
+                source.src = source.dataset.src;
+                video.load();
+            }
+            
+            if (video.paused) {
+                // 显示 loading
+                if (video.readyState < 3 && loader) { // 3 = HAVE_FUTURE_DATA
+                     loader.style.display = 'block';
+                }
+                
+                const playPromise = video.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.error('Auto-play was prevented:', error);
+                        if (loader) loader.style.display = 'none';
+                        // 播放失败通常是需要用户交互（已满足）或者资源错误
+                    });
+                }
             } else {
-                video.play();
+                video.pause();
             }
         }
         
@@ -450,18 +567,12 @@ if (empty($videos) || !is_array($videos)) {
             }
         }
         
-        // 视频播放事件
-        video.addEventListener('play', () => {
-            isPlaying = true;
-            if (playBtn) playBtn.style.display = 'none';
-            if (controls) controls.style.display = 'block';
-        });
-        
         // 视频暂停事件
         video.addEventListener('pause', () => {
             isPlaying = false;
             if (playBtn) playBtn.style.display = 'block';
             if (controls) controls.style.display = 'none';
+            if (loader) loader.style.display = 'none';
         });
         
         // 绑定点击事件
