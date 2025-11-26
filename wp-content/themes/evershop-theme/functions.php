@@ -220,6 +220,22 @@ function evershop_scripts() {
     // 使用文件修改时间作为版本号，确保 CSS 修改后立即生效（清除缓存）
     wp_enqueue_style('evershop-style', get_stylesheet_uri(), array(), evershop_get_asset_version('/style.css'));
     
+    // Cookie Consent 样式和脚本
+    wp_enqueue_style(
+        'evershop-cookie-consent',
+        get_template_directory_uri() . '/assets/css/cookie-consent.css',
+        array('evershop-style'),
+        evershop_get_asset_version('/assets/css/cookie-consent.css')
+    );
+    
+    wp_enqueue_script(
+        'evershop-cookie-consent',
+        get_template_directory_uri() . '/assets/js/cookie-consent.js',
+        array('jquery'),
+        evershop_get_asset_version('/assets/js/cookie-consent.js'),
+        true
+    );
+    
     // 现代化搜索框样式
     wp_enqueue_style(
         'evershop-search-overlay',
