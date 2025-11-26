@@ -1039,15 +1039,47 @@ function evershop_product_filters() {
     $max_price = isset($_GET['max_price']) ? floatval($_GET['max_price']) : '';
     $stock_status = isset($_GET['stock_status']) ? sanitize_text_field($_GET['stock_status']) : '';
     
-    // 获取价格范围
-    global $wpdb;
-    $price_range = $wpdb->get_row("
-        SELECT MIN(CAST(meta_value AS DECIMAL(10,2))) as min_price, 
-               MAX(CAST(meta_value AS DECIMAL(10,2))) as max_price
-        FROM {$wpdb->postmeta}
-        WHERE meta_key = '_price'
-        AND meta_value != ''
-    ");
+    // 使用 WooCommerce 标准方法获取价格范围和库存数量
+    $min_price_range = 0;
+    $max_price_range = 0;
+    $instock_count = 0;
+    $outofstock_count = 0;
+    
+    if (function_exists('wc_get_products')) {
+        // 获取所有已发布的产品
+        $all_products = wc_get_products(array(
+            'status' => 'publish',
+            'limit' => -1,
+        ));
+        
+        // 计算价格范围
+        $prices = array();
+        foreach ($all_products as $product) {
+            $price = $product->get_price();
+            if ($price !== '' && $price !== null) {
+                $prices[] = floatval($price);
+            }
+            
+            // 同时统计库存状态
+            if ($product->get_stock_status() === 'instock') {
+                $instock_count++;
+            } elseif ($product->get_stock_status() === 'outofstock') {
+                $outofstock_count++;
+            }
+        }
+        
+        // 设置价格范围
+        if (!empty($prices)) {
+            $min_price_range = min($prices);
+            $max_price_range = max($prices);
+        }
+    }
+    
+    // 创建价格范围对象以保持向后兼容
+    $price_range = (object) array(
+        'min_price' => $min_price_range,
+        'max_price' => $max_price_range
+    );
     
     // 获取产品总数
     global $wp_query;
@@ -1061,8 +1093,7 @@ function evershop_product_filters() {
                     <span class="facets-label">FILTER:</span>
                     <div class="facets-filters">
                         <!-- 库存状态筛选 -->
-                        <details class="filter-group" <?php echo $stock_status ? 'open' : ''; ?>>
-                            <summary class="filter-summary">
+                        <details class="filter-group" <?php echo $stock_status ? 'open' : ''; ?>>                            <summary class="filter-summary">
                                 <span>Availability</span>
                                 <svg class="icon-caret" viewBox="0 0 10 6">
                                     <path d="M9.354.646a.5.5 0 00-.708 0L5 4.293 1.354.646a.5.5 0 00-.708.708l4 4a.5.5 0 00.708 0l4-4a.5.5 0 000-.708z"/>
@@ -1079,21 +1110,21 @@ function evershop_product_filters() {
                                     <li class="filter-item">
                                         <label class="filter-checkbox">
                                             <input type="checkbox" 
+                                                class="stock-filter-checkbox"
                                                 name="stock_status" 
                                                 value="instock" 
-                                                <?php checked($stock_status, 'instock'); ?>
-                                                onchange="this.form.submit()">
-                                            <span>In stock</span>
+                                                <?php checked($stock_status, 'instock'); ?>>
+                                            <span>IN STOCK (<?php echo $instock_count; ?>)</span>
                                         </label>
                                     </li>
                                     <li class="filter-item">
                                         <label class="filter-checkbox">
                                             <input type="checkbox" 
+                                                class="stock-filter-checkbox"
                                                 name="stock_status" 
                                                 value="outofstock" 
-                                                <?php checked($stock_status, 'outofstock'); ?>
-                                                onchange="this.form.submit()">
-                                            <span>Out of stock</span>
+                                                <?php checked($stock_status, 'outofstock'); ?>>
+                                            <span>OUT OF STOCK (<?php echo $outofstock_count; ?>)</span>
                                         </label>
                                     </li>
                                 </ul>
@@ -1165,6 +1196,23 @@ function evershop_product_filters() {
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         const filterGroups = document.querySelectorAll('.filter-group');
+        const form = document.querySelector('.woocommerce-filters-form');
+        
+        // 在表单提交前清理空的价格字段
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const minPriceInput = form.querySelector('input[name="min_price"]');
+                const maxPriceInput = form.querySelector('input[name="max_price"]');
+                
+                // 如果价格输入为空，移除 name 属性，这样就不会提交到 URL
+                if (minPriceInput && (!minPriceInput.value || minPriceInput.value.trim() === '')) {
+                    minPriceInput.removeAttribute('name');
+                }
+                if (maxPriceInput && (!maxPriceInput.value || maxPriceInput.value.trim() === '')) {
+                    maxPriceInput.removeAttribute('name');
+                }
+            });
+        }
         
         // 点击外部区域关闭所有打开的 details
         document.addEventListener('click', function(event) {
@@ -1182,6 +1230,29 @@ function evershop_product_filters() {
                 event.stopPropagation();
             });
         });
+        
+        // 处理库存状态筛选的 checkbox 点击
+        const stockCheckboxes = document.querySelectorAll('.stock-filter-checkbox');
+        stockCheckboxes.forEach(function(checkbox) {
+            checkbox.addEventListener('change', function() {
+                // 取消选中其他 checkbox
+                stockCheckboxes.forEach(function(cb) {
+                    if (cb !== checkbox) {
+                        cb.checked = false;
+                    }
+                });
+                
+                // 如果当前 checkbox 被选中，提交表单
+                if (this.checked) {
+                    form.submit();
+                } else {
+                    // 如果取消选中，移除 stock_status 参数并重新加载
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('stock_status');
+                    window.location.href = url.toString();
+                }
+            });
+        });
     });
     </script>
     <?php
@@ -1192,13 +1263,12 @@ function evershop_product_filters() {
  * 
  * 通过 pre_get_posts 钩子修改产品查询，支持：
  * - 价格范围筛选（min_price, max_price）
- * - 库存状态筛选（stock_status）
+ * - 库存状态筛选（stock_status）- 使用 WooCommerce 标准方法
  * - 默认只显示有货产品
  */
 function evershop_apply_product_filters($query) {
     if (!is_admin() && $query->is_main_query() && function_exists('is_product_category') && function_exists('is_shop') && (is_product_category() || is_shop())) {
         $meta_query = $query->get('meta_query') ?: array();
-        $tax_query = $query->get('tax_query') ?: array();
         
         // 价格筛选：最小价格
         if (isset($_GET['min_price']) && !empty($_GET['min_price'])) {
@@ -1220,20 +1290,17 @@ function evershop_apply_product_filters($query) {
             );
         }
         
-        // 库存状态筛选：如果用户选择了状态，使用选择的状态；否则默认只显示有货产品
-        if (isset($_GET['stock_status']) && !empty($_GET['stock_status'])) {
-            $meta_query[] = array(
-                'key' => '_stock_status',
-                'value' => sanitize_text_field($_GET['stock_status']),
-                'compare' => '='
-            );
-        } else {
-            $meta_query[] = array(
-                'key' => '_stock_status',
-                'value' => 'instock',
-                'compare' => '='
-            );
-        }
+        // 库存状态筛选：使用 WooCommerce 标准方法
+        // 如果用户选择了状态，使用选择的状态；否则默认只显示有货产品
+        $stock_status = isset($_GET['stock_status']) && !empty($_GET['stock_status']) 
+            ? sanitize_text_field($_GET['stock_status']) 
+            : 'instock';
+        
+        $meta_query[] = array(
+            'key' => '_stock_status',
+            'value' => $stock_status,
+            'compare' => '='
+        );
         
         if (!empty($meta_query)) {
             $meta_query['relation'] = 'AND';

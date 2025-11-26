@@ -51,8 +51,11 @@
             
             // 5. 绑定图片切换事件
             this.bindGalleryEvents();
+
+            // 6. 绑定滑动事件
+            this.bindSwipeEvents();
             
-            // 6. 添加无障碍属性
+            // 7. 添加无障碍属性
             this.addAriaAttributes();
 
             // 7. 自动选择默认变体
@@ -79,7 +82,7 @@
             }
             
             // 阻止 FlexSlider 的后续初始化
-            $(document).off('click', '.flex-control-nav li');
+            $(document).off('click touchstart', '.flex-control-nav li');
         },
         
         /**
@@ -140,12 +143,21 @@
             var self = this;
             
             // 使用事件委托，监听所有缩略图点击
-            $(document).on('click', '.flex-control-nav.flex-control-thumbs li, .woocommerce-product-gallery ol li', function(e) {
+            // 兼容移动端 click，增加 touchend 处理
+            $(document).on('click touchend', '.flex-control-nav.flex-control-thumbs li, .woocommerce-product-gallery ol li', function(e) {
+                // 防止 click 和 touchend 重复触发
+                if (e.type === 'touchend') {
+                    $(this).data('is-touch', true);
+                } else if (e.type === 'click' && $(this).data('is-touch')) {
+                    $(this).data('is-touch', false);
+                    return;
+                }
+
                 e.preventDefault();
                 e.stopPropagation(); // 阻止事件冒泡，防止触发 FlexSlider
                 
                 var index = $(this).index();
-                console.log('🖱️ 缩略图被点击，索引:', index);
+                console.log('🖱️ 缩略图被点击/触摸，索引:', index);
                 
                 // 切换到对应索引的图片
                 self.switchToImage(index);
@@ -160,6 +172,79 @@
             this.watchGalleryStyles();
             
             console.log('✅ 图片库事件绑定完成');
+        },
+
+        /**
+         * 绑定滑动事件 (移动端支持)
+         */
+        bindSwipeEvents: function() {
+            var self = this;
+            var touchStartX = 0;
+            var touchStartY = 0;
+            
+            // 监听主图容器
+            var $wrapper = $('.woocommerce-product-gallery__wrapper');
+            
+            // 确保 wrapper 存在
+            if (!$wrapper.length) return;
+
+            $wrapper.on('touchstart', function(e) {
+                var touch = e.originalEvent.touches[0] || e.originalEvent.changedTouches[0];
+                touchStartX = touch.pageX;
+                touchStartY = touch.pageY;
+            });
+            
+            $wrapper.on('touchend', function(e) {
+                var touch = e.originalEvent.changedTouches[0];
+                var touchEndX = touch.pageX;
+                var touchEndY = touch.pageY;
+                
+                self.handleSwipeGesture(touchStartX, touchStartY, touchEndX, touchEndY);
+            });
+        },
+
+        /**
+         * 处理滑动逻辑
+         */
+        handleSwipeGesture: function(startX, startY, endX, endY) {
+            var xDiff = startX - endX;
+            var yDiff = startY - endY;
+            var minSwipeDistance = 50;
+
+            // 检测水平滑动 (水平距离大于垂直距离，且超过阈值)
+            if (Math.abs(xDiff) > Math.abs(yDiff) && Math.abs(xDiff) > minSwipeDistance) {
+                if (xDiff > 0) {
+                    // 向左滑动 -> 下一张
+                    console.log('👈 向左滑动 -> 下一张');
+                    this.nextImage();
+                } else {
+                    // 向右滑动 -> 上一张
+                    console.log('👉 向右滑动 -> 上一张');
+                    this.prevImage();
+                }
+            }
+        },
+
+        /**
+         * 下一张图片
+         */
+        nextImage: function() {
+            var nextIndex = this.currentImageIndex + 1;
+            if (nextIndex >= this.currentImages.length) {
+                nextIndex = 0; // 循环播放
+            }
+            this.switchToImage(nextIndex);
+        },
+
+        /**
+         * 上一张图片
+         */
+        prevImage: function() {
+            var prevIndex = this.currentImageIndex - 1;
+            if (prevIndex < 0) {
+                prevIndex = this.currentImages.length - 1; // 循环播放
+            }
+            this.switchToImage(prevIndex);
         },
         
         /**
