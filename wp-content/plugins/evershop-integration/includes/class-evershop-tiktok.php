@@ -403,6 +403,10 @@ class EverShop_TikTok {
         $event_id = $event_id ?: wp_generate_uuid4();
 
         // 构造单条事件数据
+        $protocol = is_ssl() ? 'https://' : 'http://';
+        // 使用 esc_url_raw 清洗 URL，防止恶意字符注入
+        $current_url = esc_url_raw($protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']);
+
         $event_data = [
             'event' => $event_name,
             'event_id' => $event_id,
@@ -412,7 +416,7 @@ class EverShop_TikTok {
                 'user_agent' => $_SERVER['HTTP_USER_AGENT']
             ],
             'page' => [
-                'url' => "http://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]"
+                'url' => $current_url
             ],
             'properties' => $properties
         ];
@@ -449,7 +453,7 @@ class EverShop_TikTok {
                 'Access-Token' => self::$access_token,
                 'Content-Type' => 'application/json'
             ],
-            'body' => json_encode($payload),
+            'body' => json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
             'blocking' => true,
             'timeout' => 5
         ]);

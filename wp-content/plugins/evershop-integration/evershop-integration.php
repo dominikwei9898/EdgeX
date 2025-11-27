@@ -186,10 +186,18 @@ function evershop_tiktok_logs_page() {
                     </div>
                     <div id="details-<?php echo $index; ?>" class="log-details" style="display:none;">
                         <h4>Request Payload:</h4>
-                        <pre><?php echo esc_html(json_encode($log['request_body'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)); ?></pre>
+                        <pre><?php 
+                            // 强制去除斜杠转义
+                            $request_json = json_encode($log['request_body'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                            echo esc_html($request_json); 
+                        ?></pre>
                         
                         <h4>Response:</h4>
-                        <pre><?php echo esc_html(json_encode($log['response_body'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)); ?></pre>
+                        <pre><?php 
+                            // 强制去除斜杠转义
+                            $response_json = json_encode($log['response_body'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                            echo esc_html($response_json); 
+                        ?></pre>
                     </div>
                 </div>
             <?php endforeach; ?>
