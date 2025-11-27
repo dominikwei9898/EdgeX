@@ -1,0 +1,476 @@
+<?php
+/**
+ * EverShop TikTok Integration
+ * 
+ * Handles TikTok Pixel (Browser) and Events API (Server)
+ */
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+class EverShop_TikTok {
+
+    private static $pixel_id;
+    private static $access_token;
+    private static $api_endpoint = 'https://business-api.tiktok.com/open_api/v1.3/event/track/';
+    private static $test_event_code;
+
+    private static $test_mode = 'test';
+
+    public static function init() {
+        $instance = new self();
+        $instance->load_settings();
+        $instance->setup_hooks();
+    }
+
+    private function load_settings() {
+        self::$pixel_id = get_option('evershop_tiktok_pixel_id');
+        self::$access_token = get_option('evershop_tiktok_access_token');
+        self::$test_event_code = get_option('evershop_tiktok_test_event_code');
+        self::$test_mode = get_option('evershop_tiktok_test_mode', 'test');
+        
+        // 支持自定义 API Endpoint (为 Events API Gateway 预留)
+        $custom_endpoint = get_option('evershop_tiktok_api_endpoint');
+        if (!empty($custom_endpoint)) {
+            self::$api_endpoint = $custom_endpoint;
+        }
+    }
+
+    private function setup_hooks() {
+        // Admin Settings
+        add_action('admin_init', [$this, 'register_settings']);
+
+        // 如果没有配置 Pixel ID，不执行后续操作
+        if (empty(self::$pixel_id)) {
+            return;
+        }
+
+        // 1. Browser Pixel Code
+        add_action('wp_head', [$this, 'inject_base_pixel_code'], 1);
+        add_action('wp_footer', [$this, 'inject_browser_events']);
+
+        // 2. Server Side Events (CAPI)
+        // AddToCart
+        add_action('woocommerce_add_to_cart', [$this, 'track_server_add_to_cart'], 10, 6);
+
+        // InitiateCheckout
+        add_action('template_redirect', [$this, 'track_server_initiate_checkout']);
+
+        // Purchase
+        add_action('woocommerce_thankyou', [$this, 'track_server_purchase']);
+
+        // CompleteRegistration
+        add_action('user_register', [$this, 'track_server_registration']);
+    }
+
+    /**
+     * 注册设置项
+     */
+    public function register_settings() {
+        register_setting('evershop_tiktok_settings', 'evershop_tiktok_pixel_id');
+        register_setting('evershop_tiktok_settings', 'evershop_tiktok_access_token');
+        register_setting('evershop_tiktok_settings', 'evershop_tiktok_test_event_code');
+        register_setting('evershop_tiktok_settings', 'evershop_tiktok_api_endpoint');
+        // 注册 Test Mode 选项
+        register_setting('evershop_tiktok_settings', 'evershop_tiktok_test_mode');
+    }
+
+    /**
+     * 注入 Pixel 基础代码 (Step 1 & 2)
+     */
+    public function inject_base_pixel_code() {
+        ?>
+        <!-- TikTok Pixel Code Start -->
+        <script>
+        !function (w, d, t) {
+          w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(
+        var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};n=document.createElement("script")
+        ;n.type="text/javascript",n.async=!0,n.src=r+"?sdkid="+e+"&lib="+t;e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)};
+          ttq.load('<?php echo esc_js(self::$pixel_id); ?>');
+          ttq.page();
+        }(window, document, 'ttq');
+        </script>
+        <!-- TikTok Pixel Code End -->
+        <?php
+    }
+
+    /**
+     * 注入浏览器端事件 (Step 3)
+     */
+    public function inject_browser_events() {
+        // 1. Identify User
+        $this->inject_identify_event();
+
+        // 2. ViewContent (Product Page)
+        if (is_product()) {
+            global $post;
+            $product = wc_get_product($post->ID);
+            ?>
+            <script>
+            ttq.track('ViewContent', {
+                "contents": [
+                    {
+                        "content_id": "<?php echo $product->get_id(); ?>",
+                        "content_type": "product",
+                        "content_name": "<?php echo esc_js($product->get_name()); ?>"
+                    }
+                ],
+                "value": <?php echo $product->get_price(); ?>,
+                "currency": "<?php echo get_woocommerce_currency(); ?>"
+            });
+            
+            // 额外添加 AddToCart 监听器 (Browser Side)
+            jQuery(document).ready(function($) {
+                $('body').on('added_to_cart', function(event, fragments, cart_hash, $button) {
+                    // 默认基础数据
+                    var content_id = "<?php echo $product->get_id(); ?>";
+                    var content_name = "<?php echo esc_js($product->get_name()); ?>";
+                    var price = <?php echo $product->get_price(); ?>;
+                    
+                    // [变体支持] 尝试获取当前表单选中的变体 ID
+                    // 1. 检查是否有 variation_id 输入框且有值
+                    var $form = $button.closest('form.cart');
+                    if ($form.length === 0) $form = $('form.cart'); // fallback
+                    
+                    var $variation_input = $form.find('input[name="variation_id"]');
+                    if ($variation_input.length > 0 && $variation_input.val() && $variation_input.val() != '0') {
+                        content_id = $variation_input.val(); // 使用变体 ID
+                    }
+
+                    ttq.track('AddToCart', {
+                        "contents": [
+                            {
+                                "content_id": content_id,
+                                "content_type": "product",
+                                "content_name": content_name
+                            }
+                        ],
+                        "value": price, 
+                        "currency": "<?php echo get_woocommerce_currency(); ?>"
+                    });
+                });
+            });
+            </script>
+            <?php
+        }
+
+        // 3. Search
+        if (is_search()) {
+            ?>
+            <script>
+            ttq.track('Search', {
+                "contents": [],
+                "search_string": "<?php echo esc_js(get_search_query()); ?>",
+                "currency": "<?php echo get_woocommerce_currency(); ?>"
+            });
+            </script>
+            <?php
+        }
+
+        // 4. InitiateCheckout (Checkout Page)
+        if (is_checkout() && !is_order_received_page()) {
+            $cart = WC()->cart;
+            if ($cart) {
+                $contents = [];
+                foreach ($cart->get_cart() as $cart_item) {
+                    $product = $cart_item['data'];
+                    $contents[] = [
+                        "content_id" => (string)$cart_item['product_id'],
+                        "content_type" => "product",
+                        "content_name" => $product->get_name()
+                    ];
+                }
+                ?>
+                <script>
+                ttq.track('InitiateCheckout', {
+                    "contents": <?php echo json_encode($contents); ?>,
+                    "value": <?php echo $cart->get_total('float'); ?>,
+                    "currency": "<?php echo get_woocommerce_currency(); ?>"
+                });
+                </script>
+                <?php
+            }
+        }
+
+        // 5. Purchase (Order Received Page)
+        if (is_order_received_page()) {
+            global $wp;
+            $order_id = isset($wp->query_vars['order-received']) ? $wp->query_vars['order-received'] : 0;
+            if ($order_id) {
+                $order = wc_get_order($order_id);
+                if ($order) {
+                    $contents = [];
+                    foreach ($order->get_items() as $item) {
+                        $contents[] = [
+                            "content_id" => (string)$item->get_product_id(),
+                            "content_type" => "product",
+                            "content_name" => $item->get_name()
+                        ];
+                    }
+                    ?>
+                    <script>
+                    ttq.track('Purchase', {
+                        "contents": <?php echo json_encode($contents); ?>,
+                        "value": <?php echo $order->get_total(); ?>,
+                        "currency": "<?php echo $order->get_currency(); ?>"
+                    }, {
+                        event_id: "<?php echo $order_id; ?>"
+                    });
+                    </script>
+                    <?php
+                }
+            }
+        }
+    }
+
+    /**
+     * 注入 Identify 事件
+     */
+    private function inject_identify_event() {
+        if (!is_user_logged_in()) {
+            return;
+        }
+        
+        $current_user = wp_get_current_user();
+        $email = $current_user->user_email;
+        $user_id = $current_user->ID;
+        
+        // SHA-256 Hashing
+        $hashed_email = hash('sha256', strtolower(trim($email)));
+        $hashed_external_id = hash('sha256', (string)$user_id);
+        
+        ?>
+        <script>
+        ttq.identify({
+            "email": "<?php echo $hashed_email; ?>",
+            "external_id": "<?php echo $hashed_external_id; ?>"
+        });
+        </script>
+        <?php
+    }
+
+    // --- Server Side Events (Keep existing implementation) ---
+
+    /**
+     * Server Side: AddToCart
+     */
+    public function track_server_add_to_cart($cart_item_key, $product_id, $quantity, $variation_id, $variation, $cart_item_data) {
+        $product = wc_get_product($variation_id ? $variation_id : $product_id);
+        $event_id = uniqid('atc_'); 
+
+        $properties = [
+            'contents' => [
+                [
+                    'content_id' => (string)$product->get_id(),
+                    'content_type' => 'product',
+                    'content_name' => $product->get_name()
+                ]
+            ],
+            'value' => $product->get_price() * $quantity,
+            'currency' => get_woocommerce_currency(),
+            'quantity' => $quantity
+        ];
+
+        $this->send_server_event('AddToCart', $properties, [], $event_id);
+    }
+
+    /**
+     * Server Side: InitiateCheckout
+     */
+    public function track_server_initiate_checkout() {
+        if (!is_checkout() || is_order_received_page()) return;
+
+        $cart = WC()->cart;
+        if (!$cart) return;
+
+        $contents = [];
+        foreach ($cart->get_cart() as $cart_item) {
+            $contents[] = [
+                'content_id' => (string)$cart_item['product_id'],
+                'content_type' => 'product',
+                'content_name' => $cart_item['data']->get_name(),
+                'quantity' => $cart_item['quantity'],
+                'price' => $cart_item['data']->get_price()
+            ];
+        }
+
+        $properties = [
+            'contents' => $contents,
+            'value' => $cart->get_total('float'),
+            'currency' => get_woocommerce_currency()
+        ];
+
+        $this->send_server_event('InitiateCheckout', $properties);
+    }
+
+    /**
+     * Server Side: Purchase
+     */
+    public function track_server_purchase($order_id) {
+        if (!$order_id) return;
+        $order = wc_get_order($order_id);
+        if (!$order) return;
+
+        if (get_post_meta($order_id, '_tiktok_purchase_sent', true)) {
+            return;
+        }
+
+        $contents = [];
+        foreach ($order->get_items() as $item) {
+            $contents[] = [
+                'content_id' => (string)$item->get_product_id(),
+                'content_type' => 'product',
+                'content_name' => $item->get_name(),
+                'quantity' => $item->get_quantity(),
+                'price' => $item->get_total()
+            ];
+        }
+
+        $user_data = [
+            'email' => $order->get_billing_email(),
+            'phone' => $order->get_billing_phone(),
+            'external_id' => (string)$order->get_user_id()
+        ];
+
+        $properties = [
+            'contents' => $contents,
+            'value' => $order->get_total(),
+            'currency' => $order->get_currency(),
+            'order_id' => (string)$order_id
+        ];
+
+        $this->send_server_event('Purchase', $properties, $user_data, (string)$order_id);
+        
+        update_post_meta($order_id, '_tiktok_purchase_sent', 'yes');
+    }
+
+    /**
+     * Server Side: Registration
+     */
+    public function track_server_registration($user_id) {
+        $user = get_userdata($user_id);
+        $user_data = [
+            'email' => $user->user_email,
+            'external_id' => (string)$user_id
+        ];
+        
+        $this->send_server_event('CompleteRegistration', ['method' => 'website'], $user_data);
+    }
+
+    /**
+     * 发送 API 请求核心方法
+     */
+    private function send_server_event($event_name, $properties = [], $user_data = [], $event_id = null) {
+        if (empty(self::$access_token)) return;
+
+        $customer_info = $this->get_customer_info($user_data);
+        $event_id = $event_id ?: wp_generate_uuid4();
+
+        // 构造单条事件数据
+        $event_data = [
+            'event' => $event_name,
+            'event_id' => $event_id,
+            'event_time' => current_time('timestamp'), // TikTok 推荐用 event_time (unix timestamp)
+            'user' => [
+                'ip' => $_SERVER['REMOTE_ADDR'],
+                'user_agent' => $_SERVER['HTTP_USER_AGENT']
+            ],
+            'page' => [
+                'url' => "http://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]"
+            ],
+            'properties' => $properties
+        ];
+
+        // Add User Data (Hashed)
+        if (isset($customer_info['email'])) {
+            $event_data['user']['email'] = hash('sha256', strtolower(trim($customer_info['email'])));
+        }
+        if (isset($customer_info['phone'])) {
+            $event_data['user']['phone'] = hash('sha256', preg_replace('/[^0-9]/', '', $customer_info['phone']));
+        }
+        if (isset($customer_info['external_id'])) {
+            $event_data['user']['external_id'] = hash('sha256', $customer_info['external_id']);
+        }
+
+        // 构造最终 Payload (标准结构)
+        $payload = [
+            'event_source' => 'web',
+            'event_source_id' => self::$pixel_id,
+            'data' => [$event_data]
+        ];
+
+        // Test Event Code (放在顶层)
+        if (self::$test_mode === 'test' && !empty(self::$test_event_code)) {
+            $payload['test_event_code'] = self::$test_event_code;
+        }
+        
+        // 记录请求日志 (Request)
+        $this->log_api_call('POST', $event_name, $payload);
+
+        // 发送请求
+        $response = wp_remote_post(self::$api_endpoint, [
+            'headers' => [
+                'Access-Token' => self::$access_token,
+                'Content-Type' => 'application/json'
+            ],
+            'body' => json_encode($payload),
+            'blocking' => true,
+            'timeout' => 5
+        ]);
+
+        // 记录响应日志 (Response)
+        $this->log_api_response($event_name, $response);
+    }
+
+    private function log_api_call($method, $event, $request_body) {
+        $logs = get_option('evershop_tiktok_logs', []);
+        
+        // 限制日志数量，保留最近 50 条
+        if (count($logs) > 50) {
+            $logs = array_slice($logs, -50);
+        }
+
+        $logs[] = [
+            'time' => current_time('mysql'),
+            'method' => $method, // 新增 Method
+            'type' => 'request',
+            'event' => $event,
+            'request_body' => $request_body,
+            'response_code' => 'Pending...',
+            'response_body' => ''
+        ];
+
+        update_option('evershop_tiktok_logs', $logs);
+    }
+
+    private function log_api_response($event, $response) {
+        $logs = get_option('evershop_tiktok_logs', []);
+        if (empty($logs)) return;
+
+        // 获取最后一条日志（假设是刚才那条，单线程下通常没问题，并发高可能需要更严谨的 ID 匹配）
+        $last_key = array_key_last($logs);
+        
+        if (is_wp_error($response)) {
+            $logs[$last_key]['response_code'] = 'WP Error';
+            $logs[$last_key]['response_body'] = $response->get_error_message();
+        } else {
+            $logs[$last_key]['response_code'] = wp_remote_retrieve_response_code($response);
+            $logs[$last_key]['response_body'] = json_decode(wp_remote_retrieve_body($response), true);
+        }
+
+        update_option('evershop_tiktok_logs', $logs);
+    }
+
+    private function get_customer_info($overrides = []) {
+        if (!empty($overrides)) return $overrides;
+        
+        $info = [];
+        if (is_user_logged_in()) {
+            $current_user = wp_get_current_user();
+            $info['email'] = $current_user->user_email;
+            $info['external_id'] = (string)$current_user->ID;
+        }
+        return $info;
+    }
+}

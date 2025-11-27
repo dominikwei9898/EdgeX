@@ -94,6 +94,9 @@ function evershop_integration_init() {
     require_once EVERSHOP_INTEGRATION_PLUGIN_DIR . 'includes/class-evershop-variation-gallery.php';
     require_once EVERSHOP_INTEGRATION_PLUGIN_DIR . 'includes/class-evershop-content-builder.php';
     
+    // 加载 TikTok 类
+    require_once EVERSHOP_INTEGRATION_PLUGIN_DIR . 'includes/class-evershop-tiktok.php';
+    
     // 初始化类
     EverShop_API::init();
     EverShop_Auth::init();
@@ -104,6 +107,9 @@ function evershop_integration_init() {
     EverShop_Blocks::init();
     EverShop_CORS::init();
     EverShop_Variant_System::init();
+    
+    // 初始化 TikTok
+    EverShop_TikTok::init();
 }
 
 /**
@@ -123,12 +129,73 @@ function evershop_integration_admin_menu() {
     
     add_submenu_page(
         'evershop-integration',
-        '字段参考',
-        '字段参考',
+        'TikTok Logs',
+        'TikTok Logs',
         'manage_options',
-        'evershop-field-reference',
-        'evershop_integration_field_reference_page'
+        'evershop-tiktok-logs',
+        'evershop_tiktok_logs_page'
     );
+}
+
+/**
+ * TikTok Logs Page
+ */
+function evershop_tiktok_logs_page() {
+    // Clear logs action
+    if (isset($_POST['clear_logs']) && check_admin_referer('evershop_clear_logs', 'evershop_clear_logs_nonce')) {
+        delete_option('evershop_tiktok_logs');
+        echo '<div class="notice notice-success is-dismissible"><p>日志已清空。</p></div>';
+    }
+
+    $logs = get_option('evershop_tiktok_logs', []);
+    // Reverse to show newest first
+    $logs = array_reverse($logs);
+    
+    ?>
+    <div class="wrap">
+        <h1>TikTok API Logs</h1>
+        
+        <form method="post" style="margin-bottom: 20px;">
+            <?php wp_nonce_field('evershop_clear_logs', 'evershop_clear_logs_nonce'); ?>
+            <button type="submit" name="clear_logs" class="button button-secondary">清空日志</button>
+            <button type="button" class="button button-primary" onclick="location.reload();">刷新</button>
+        </form>
+
+        <style>
+            .log-entry { background: #fff; padding: 15px; margin-bottom: 10px; border-left: 4px solid #ccc; box-shadow: 0 1px 1px rgba(0,0,0,.04); }
+            .log-entry.success { border-left-color: #46b450; }
+            .log-entry.error { border-left-color: #dc3232; }
+            .log-meta { margin-bottom: 10px; color: #666; font-size: 12px; }
+            .log-details { background: #f6f7f7; padding: 10px; overflow-x: auto; }
+            .log-toggle { cursor: pointer; color: #2271b1; }
+        </style>
+
+        <?php if (empty($logs)): ?>
+            <div class="notice notice-info inline"><p>暂无日志记录。</p></div>
+        <?php else: ?>
+            <?php foreach ($logs as $index => $log): 
+                $status_class = (isset($log['response_code']) && $log['response_code'] >= 200 && $log['response_code'] < 300) ? 'success' : 'error';
+            ?>
+                <div class="log-entry <?php echo $status_class; ?>">
+                    <div class="log-meta">
+                        <strong><?php echo esc_html($log['time']); ?></strong> | 
+                        <strong><?php echo esc_html($log['method'] ?? 'POST'); ?></strong> |
+                        Event: <strong><?php echo esc_html($log['event'] ?? 'Unknown'); ?></strong> |
+                        Status: <?php echo esc_html($log['response_code'] ?? 'N/A'); ?>
+                        <span class="log-toggle" onclick="jQuery('#details-<?php echo $index; ?>').toggle()">[显示/隐藏详情]</span>
+                    </div>
+                    <div id="details-<?php echo $index; ?>" class="log-details" style="display:none;">
+                        <h4>Request Payload:</h4>
+                        <pre><?php echo esc_html(json_encode($log['request_body'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)); ?></pre>
+                        
+                        <h4>Response:</h4>
+                        <pre><?php echo esc_html(json_encode($log['response_body'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)); ?></pre>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </div>
+    <?php
 }
 
 /**
@@ -156,10 +223,73 @@ function evershop_integration_admin_page() {
         delete_transient('evershop_field_migration_status');
         echo '<div class="notice notice-' . ($result['success'] ? 'success' : 'error') . ' is-dismissible"><p>' . esc_html($result['message']) . '</p></div>';
     }
+
+    // 获取当前 Tab
+    $active_tab = isset($_GET['tab']) ? $_GET['tab'] : 'dashboard';
     
     ?>
     <div class="wrap">
         <h1>EverShop Integration for WooCommerce</h1>
+        
+        <h2 class="nav-tab-wrapper">
+            <a href="?page=evershop-integration&tab=dashboard" class="nav-tab <?php echo $active_tab == 'dashboard' ? 'nav-tab-active' : ''; ?>">仪表盘</a>
+            <a href="?page=evershop-integration&tab=tiktok" class="nav-tab <?php echo $active_tab == 'tiktok' ? 'nav-tab-active' : ''; ?>">TikTok Data Connection</a>
+        </h2>
+        
+        <?php if ($active_tab == 'tiktok'): ?>
+            <div class="card">
+                <h2>🎵 TikTok Data Connection</h2>
+                <p>配置您的 TikTok Pixel 和 Events API 以开始追踪数据。</p>
+                
+                <form method="post" action="options.php">
+                    <?php settings_fields('evershop_tiktok_settings'); ?>
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row">Pixel ID</th>
+                            <td>
+                                <input type="text" name="evershop_tiktok_pixel_id" value="<?php echo esc_attr(get_option('evershop_tiktok_pixel_id')); ?>" class="regular-text" />
+                                <p class="description">您的 TikTok Pixel ID (e.g., C123456789)</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Access Token</th>
+                            <td>
+                                <input type="password" name="evershop_tiktok_access_token" value="<?php echo esc_attr(get_option('evershop_tiktok_access_token')); ?>" class="regular-text" />
+                                <p class="description">从 TikTok Events Manager 生成的 Events API Access Token</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Mode</th>
+                            <td>
+                                <label>
+                                    <input type="radio" name="evershop_tiktok_test_mode" value="test" <?php checked(get_option('evershop_tiktok_test_mode', 'test'), 'test'); ?> /> Test Mode
+                                </label>
+                                <br>
+                                <label>
+                                    <input type="radio" name="evershop_tiktok_test_mode" value="production" <?php checked(get_option('evershop_tiktok_test_mode', 'test'), 'production'); ?> /> Production Mode
+                                </label>
+                                <p class="description">选择环境模式。生产模式下不会发送测试代码。</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Test Event Code</th>
+                            <td>
+                                <input type="text" name="evershop_tiktok_test_event_code" value="<?php echo esc_attr(get_option('evershop_tiktok_test_event_code')); ?>" class="regular-text" />
+                                <p class="description">仅在 Test Mode 下生效。用于测试服务器事件的测试代码。</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row">API Endpoint URL</th>
+                            <td>
+                                <input type="text" name="evershop_tiktok_api_endpoint" value="<?php echo esc_attr(get_option('evershop_tiktok_api_endpoint')); ?>" class="regular-text" placeholder="https://business-api.tiktok.com/open_api/v1.3/event/track/" />
+                                <p class="description">默认为 TikTok 官方 API。如果您使用 <strong>AWS Events API Gateway</strong>，请在此处填入您的 Gateway URL。</p>
+                            </td>
+                        </tr>
+                    </table>
+                    <?php submit_button(); ?>
+                </form>
+            </div>
+        <?php else: ?>
         
         <div class="card" style="border-left: 4px solid #2271b1;">
             <h2>📦 插件架构说明</h2>
@@ -459,6 +589,7 @@ function evershop_integration_admin_page() {
             </div>
             <?php endif; ?>
         </div>
+    <?php endif; ?>
     </div>
     <?php
 }
