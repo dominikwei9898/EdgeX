@@ -60,6 +60,9 @@ class EverShop_TikTok {
         // InitiateCheckout
         add_action('template_redirect', [$this, 'track_server_initiate_checkout']);
 
+        // AddPaymentInfo (Server Side)
+        add_action('woocommerce_checkout_order_processed', [$this, 'track_server_add_payment_info']);
+
         // Purchase
         add_action('woocommerce_thankyou', [$this, 'track_server_purchase']);
 
@@ -193,6 +196,17 @@ class EverShop_TikTok {
                     "contents": <?php echo json_encode($contents); ?>,
                     "value": <?php echo $cart->get_total('float'); ?>,
                     "currency": "<?php echo get_woocommerce_currency(); ?>"
+                });
+
+                // AddPaymentInfo Trigger (on Place Order click)
+                jQuery(document).ready(function($) {
+                    $('form.checkout').on('checkout_place_order', function() {
+                        ttq.track('AddPaymentInfo', {
+                            "contents": <?php echo json_encode($contents); ?>,
+                            "value": <?php echo $cart->get_total('float'); ?>,
+                            "currency": "<?php echo get_woocommerce_currency(); ?>"
+                        });
+                    });
                 });
                 </script>
                 <?php
@@ -337,6 +351,51 @@ class EverShop_TikTok {
         ];
 
         $this->send_server_event('InitiateCheckout', $properties);
+    }
+
+    /**
+     * Server Side: AddPaymentInfo
+     */
+    public function track_server_add_payment_info($order_id) {
+        if (!$order_id) return;
+        $order = wc_get_order($order_id);
+        if (!$order) return;
+
+        // 避免重复发送
+        if (get_post_meta($order_id, '_tiktok_add_payment_info_sent', true)) {
+            return;
+        }
+
+        $contents = [];
+        foreach ($order->get_items() as $item) {
+            $contents[] = [
+                'content_id' => (string)$item->get_product_id(),
+                'content_type' => 'product',
+                'content_name' => $item->get_name(),
+                'quantity' => $item->get_quantity(),
+                'price' => $item->get_total()
+            ];
+        }
+
+        $user_data = [
+            'email' => $order->get_billing_email(),
+            'phone' => $order->get_billing_phone(),
+            'external_id' => (string)$order->get_user_id()
+        ];
+
+        $properties = [
+            'contents' => $contents,
+            'value' => $order->get_total(),
+            'currency' => $order->get_currency(),
+            'order_id' => (string)$order_id
+        ];
+
+        // 使用 order_id 前缀作为 event_id 确保唯一性
+        $event_id = 'api_' . $order_id;
+
+        $this->send_server_event('AddPaymentInfo', $properties, $user_data, $event_id);
+        
+        update_post_meta($order_id, '_tiktok_add_payment_info_sent', 'yes');
     }
 
     /**
