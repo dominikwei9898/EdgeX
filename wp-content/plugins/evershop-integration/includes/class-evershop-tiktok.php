@@ -51,6 +51,9 @@ class EverShop_TikTok {
         add_action('wp_footer', [$this, 'inject_browser_events']);
 
         // 2. Server Side Events (CAPI)
+        // ViewContent 
+        add_action('wp', [$this, 'track_server_view_content']);
+
         // AddToCart
         add_action('woocommerce_add_to_cart', [$this, 'track_server_add_to_cart'], 10, 6);
 
@@ -104,8 +107,10 @@ class EverShop_TikTok {
 
         // 2. ViewContent (Product Page)
         if (is_product()) {
-            global $post;
-            $product = wc_get_product($post->ID);
+            $product_id = get_queried_object_id();
+            $product = wc_get_product($product_id);
+            
+            if ($product) :
             ?>
             <script>
             ttq.track('ViewContent', {
@@ -153,6 +158,7 @@ class EverShop_TikTok {
             });
             </script>
             <?php
+            endif;
         }
 
         // 3. Search
@@ -251,6 +257,35 @@ class EverShop_TikTok {
     }
 
     // --- Server Side Events (Keep existing implementation) ---
+
+    /**
+     * Server Side: ViewContent
+     */
+    public function track_server_view_content() {
+        if (!is_product()) return;
+        
+        $product_id = get_queried_object_id();
+        $product = wc_get_product($product_id);
+        
+        if (!$product) return;
+
+        // 生成唯一的 Event ID
+        $event_id = uniqid('vc_');
+
+        $properties = [
+            'contents' => [
+                [
+                    'content_id' => (string)$product->get_id(),
+                    'content_type' => 'product',
+                    'content_name' => $product->get_name()
+                ]
+            ],
+            'value' => $product->get_price(),
+            'currency' => get_woocommerce_currency()
+        ];
+
+        $this->send_server_event('ViewContent', $properties, [], $event_id);
+    }
 
     /**
      * Server Side: AddToCart
