@@ -184,8 +184,11 @@ class EverShop_TikTok {
                 $contents = [];
                 foreach ($cart->get_cart() as $cart_item) {
                     $product = $cart_item['data'];
+                    // 优先使用变体 ID，如果不存在则使用产品 ID
+                    $id_to_use = !empty($cart_item['variation_id']) ? $cart_item['variation_id'] : $cart_item['product_id'];
+                    
                     $contents[] = [
-                        "content_id" => (string)$cart_item['product_id'],
+                        "content_id" => (string)$id_to_use,
                         "content_type" => "product",
                         "content_name" => $product->get_name()
                     ];
@@ -222,8 +225,11 @@ class EverShop_TikTok {
                 if ($order) {
                     $contents = [];
                     foreach ($order->get_items() as $item) {
+                        // 优先使用变体 ID
+                        $id_to_use = $item->get_variation_id() ? $item->get_variation_id() : $item->get_product_id();
+                        
                         $contents[] = [
-                            "content_id" => (string)$item->get_product_id(),
+                            "content_id" => (string)$id_to_use,
                             "content_type" => "product",
                             "content_name" => $item->get_name()
                         ];
@@ -335,8 +341,11 @@ class EverShop_TikTok {
 
         $contents = [];
         foreach ($cart->get_cart() as $cart_item) {
+            // 优先使用变体 ID
+            $id_to_use = !empty($cart_item['variation_id']) ? $cart_item['variation_id'] : $cart_item['product_id'];
+            
             $contents[] = [
-                'content_id' => (string)$cart_item['product_id'],
+                'content_id' => (string)$id_to_use,
                 'content_type' => 'product',
                 'content_name' => $cart_item['data']->get_name(),
                 'quantity' => $cart_item['quantity'],
@@ -368,8 +377,11 @@ class EverShop_TikTok {
 
         $contents = [];
         foreach ($order->get_items() as $item) {
+            // 优先使用变体 ID
+            $id_to_use = $item->get_variation_id() ? $item->get_variation_id() : $item->get_product_id();
+            
             $contents[] = [
-                'content_id' => (string)$item->get_product_id(),
+                'content_id' => (string)$id_to_use,
                 'content_type' => 'product',
                 'content_name' => $item->get_name(),
                 'quantity' => $item->get_quantity(),
@@ -412,8 +424,11 @@ class EverShop_TikTok {
 
         $contents = [];
         foreach ($order->get_items() as $item) {
+            // 优先使用变体 ID
+            $id_to_use = $item->get_variation_id() ? $item->get_variation_id() : $item->get_product_id();
+            
             $contents[] = [
-                'content_id' => (string)$item->get_product_id(),
+                'content_id' => (string)$id_to_use,
                 'content_type' => 'product',
                 'content_name' => $item->get_name(),
                 'quantity' => $item->get_quantity(),
