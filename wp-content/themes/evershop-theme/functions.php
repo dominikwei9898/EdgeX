@@ -55,6 +55,58 @@ function evershop_theme_setup() {
 add_action('after_setup_theme', 'evershop_theme_setup');
 
 /**
+ * 添加 Open Graph Meta Tags 支持
+ * 用于社交媒体分享和 TikTok Catalog 爬虫抓取
+ */
+function evershop_add_open_graph_tags() {
+    if (is_product()) {
+        global $post;
+        $product = wc_get_product($post->ID);
+        
+        if (!$product) return;
+        
+        $image_id = $product->get_image_id();
+        $image_url = $image_id ? wp_get_attachment_image_url($image_id, 'full') : '';
+        
+        // 基本 Open Graph 标签
+        echo '<meta property="og:type" content="product" />' . "\n";
+        echo '<meta property="og:title" content="' . esc_attr($product->get_name()) . '" />' . "\n";
+        echo '<meta property="og:description" content="' . esc_attr(wp_strip_all_tags($product->get_short_description() ? $product->get_short_description() : $product->get_description())) . '" />' . "\n";
+        echo '<meta property="og:url" content="' . esc_url($product->get_permalink()) . '" />' . "\n";
+        echo '<meta property="og:site_name" content="' . esc_attr(get_bloginfo('name')) . '" />' . "\n";
+        echo '<meta property="product:price:amount" content="' . esc_attr($product->get_price()) . '" />' . "\n";
+        echo '<meta property="product:price:currency" content="' . esc_attr(get_woocommerce_currency()) . '" />' . "\n";
+        
+        if ($product->is_in_stock()) {
+             echo '<meta property="product:availability" content="instock" />' . "\n";
+        } else {
+             echo '<meta property="product:availability" content="oos" />' . "\n";
+        }
+
+        if ($image_url) {
+            echo '<meta property="og:image" content="' . esc_url($image_url) . '" />' . "\n";
+            echo '<meta property="og:image:secure_url" content="' . esc_url($image_url) . '" />' . "\n";
+        }
+    } elseif (is_single() || is_page()) {
+        global $post;
+        setup_postdata($post);
+        
+        echo '<meta property="og:type" content="article" />' . "\n";
+        echo '<meta property="og:title" content="' . esc_attr(get_the_title()) . '" />' . "\n";
+        echo '<meta property="og:description" content="' . esc_attr(wp_strip_all_tags(get_the_excerpt())) . '" />' . "\n";
+        echo '<meta property="og:url" content="' . esc_url(get_permalink()) . '" />' . "\n";
+        echo '<meta property="og:site_name" content="' . esc_attr(get_bloginfo('name')) . '" />' . "\n";
+        
+        if (has_post_thumbnail()) {
+            $image_url = get_the_post_thumbnail_url(null, 'full');
+            echo '<meta property="og:image" content="' . esc_url($image_url) . '" />' . "\n";
+        }
+    }
+}
+add_action('wp_head', 'evershop_add_open_graph_tags', 5);
+
+
+/**
  * 注册小工具区域
  */
 function evershop_widgets_init() {
