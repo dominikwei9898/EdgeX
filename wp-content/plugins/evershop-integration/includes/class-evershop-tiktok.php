@@ -114,6 +114,7 @@ class EverShop_TikTok {
             $product = wc_get_product($product_id);
             
             if ($product) :
+                $catalog_data = $this->get_tiktok_catalog_data($product);
             ?>
             <script>
             ttq.track('ViewContent', {
@@ -124,8 +125,16 @@ class EverShop_TikTok {
                         "content_name": "<?php echo esc_js($product->get_name()); ?>"
                     }
                 ],
-                "value": <?php echo $product->get_price(); ?>,
-                "currency": "<?php echo get_woocommerce_currency(); ?>"
+                "value": <?php echo $product->get_price() ?: 0; ?>,
+                "currency": "<?php echo get_woocommerce_currency(); ?>",
+                "description": "<?php echo esc_js($catalog_data['description']); ?>",
+                "availability": "<?php echo esc_js($catalog_data['availability']); ?>",
+                "image_URL": "<?php echo esc_url($catalog_data['image_URL']); ?>",
+                "product_URL": "<?php echo esc_url($catalog_data['product_URL']); ?>",
+                "price": <?php echo $product->get_price() ?: 0; ?>,
+                "content_category": "<?php echo esc_js($catalog_data['content_category']); ?>",
+                "brand": "<?php echo esc_js($catalog_data['brand']); ?>",
+                "condition": "<?php echo esc_js($catalog_data['condition']); ?>"
             });
             
             // 额外添加 AddToCart 监听器 (Browser Side)
@@ -292,6 +301,9 @@ class EverShop_TikTok {
         // 生成唯一的 Event ID
         $event_id = uniqid('vc_');
 
+        // 获取 Catalog 必需字段
+        $catalog_data = $this->get_tiktok_catalog_data($product);
+
         $properties = [
             'contents' => [
                 [
@@ -300,8 +312,18 @@ class EverShop_TikTok {
                     'content_name' => $product->get_name()
                 ]
             ],
-            'value' => $product->get_price(),
-            'currency' => get_woocommerce_currency()
+            'value' => (float)$product->get_price(),
+            'currency' => get_woocommerce_currency(),
+            
+            // Catalog Fields
+            'description' => $catalog_data['description'],
+            'availability' => $catalog_data['availability'],
+            'image_URL' => $catalog_data['image_URL'],
+            'product_URL' => $catalog_data['product_URL'],
+            'price' => (float)$product->get_price(),
+            'content_category' => $catalog_data['content_category'],
+            'brand' => $catalog_data['brand'],
+            'condition' => $catalog_data['condition']
         ];
 
         $this->send_server_event('ViewContent', $properties, [], $event_id);
@@ -585,5 +607,83 @@ class EverShop_TikTok {
             $info['external_id'] = (string)$current_user->ID;
         }
         return $info;
+    }
+
+    /**
+     * 获取符合 TikTok Catalog 要求的额外产品数据
+     * 
+     * 参见: https://ads.tiktok.com/help/article/how-to-use-pixel-upload-with-catalogs
+     */
+    private function get_tiktok_catalog_data($product) {
+        $data = [];
+        
+        // Description (Pixel Param: description)
+        $description = $product->get_short_description();
+        if (empty($description)) {
+            $description = $product->get_description();
+        }
+        // 截取适度长度，去除HTML
+        $data['description'] = mb_substr(wp_strip_all_tags($description), 0, 500); 
+        if (empty($data['description'])) {
+            $data['description'] = $product->get_name(); // Fallback
+        }
+        
+        // Availability (Pixel Param: availability)
+        // TikTok: in stock, available for order, preorder, out of stock, discontinued
+        $stock_status = $product->get_stock_status(); // instock, outofstock, onbackorder
+        switch ($stock_status) {
+            case 'instock':
+                $data['availability'] = 'in stock';
+                break;
+            case 'outofstock':
+                $data['availability'] = 'out of stock';
+                break;
+            case 'onbackorder':
+                $data['availability'] = 'preorder';
+                break;
+            default:
+                $data['availability'] = 'in stock';
+        }
+        
+        // Image URL (Pixel Param: image_URL)
+        $image_id = $product->get_image_id();
+        if ($image_id) {
+            $data['image_URL'] = wp_get_attachment_url($image_id);
+        } else {
+            $data['image_URL'] = ''; // 或者是默认图片
+        }
+        
+        // Product URL (Pixel Param: product_URL)
+        $data['product_URL'] = $product->get_permalink();
+        
+        // Content Category (Pixel Param: content_category)
+        $data['content_category'] = '';
+        $category_ids = $product->get_category_ids();
+        if (!empty($category_ids)) {
+            $term = get_term($category_ids[0], 'product_cat');
+            if ($term && !is_wp_error($term)) {
+                $data['content_category'] = $term->name;
+            }
+        }
+
+        // Brand (Pixel Param: brand)
+        $data['brand'] = ''; 
+        // 尝试获取品牌属性 'brand' 或 'pa_brand'
+        $brand = $product->get_attribute('brand');
+        if (empty($brand)) {
+            $brand = $product->get_attribute('pa_brand');
+        }
+        if (!empty($brand)) {
+            $data['brand'] = $brand;
+        } else {
+             // 如果没有品牌属性，使用站点名称作为默认值
+            $data['brand'] = get_bloginfo('name');
+        }
+
+        // Condition (Pixel Param: condition)
+        // WooCommerce 默认没有 condition 字段，通常默认为 'new'
+        $data['condition'] = 'new';
+        
+        return $data;
     }
 }
