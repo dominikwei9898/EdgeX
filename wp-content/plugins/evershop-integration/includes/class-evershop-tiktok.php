@@ -129,8 +129,8 @@ class EverShop_TikTok {
                 "currency": "<?php echo get_woocommerce_currency(); ?>",
                 "description": "<?php echo esc_js($catalog_data['description']); ?>",
                 "availability": "<?php echo esc_js($catalog_data['availability']); ?>",
-                "image_URL": "<?php echo esc_url($catalog_data['image_URL']); ?>",
-                "product_URL": "<?php echo esc_url($catalog_data['product_URL']); ?>",
+                "image_url": "<?php echo esc_url($catalog_data['image_url']); ?>",
+                "product_url": "<?php echo esc_url($catalog_data['product_url']); ?>",
                 "price": <?php echo $product->get_price() ?: 0; ?>,
                 "content_category": "<?php echo esc_js($catalog_data['content_category']); ?>",
                 "brand": "<?php echo esc_js($catalog_data['brand']); ?>",
@@ -318,8 +318,8 @@ class EverShop_TikTok {
             // Catalog Fields
             'description' => $catalog_data['description'],
             'availability' => $catalog_data['availability'],
-            'image_URL' => $catalog_data['image_URL'],
-            'product_URL' => $catalog_data['product_URL'],
+            'image_url' => $catalog_data['image_url'],
+            'product_url' => $catalog_data['product_url'],
             'price' => (float)$product->get_price(),
             'content_category' => $catalog_data['content_category'],
             'brand' => $catalog_data['brand'],
@@ -645,16 +645,16 @@ class EverShop_TikTok {
                 $data['availability'] = 'in stock';
         }
         
-        // Image URL (Pixel Param: image_URL)
+        // Image URL (Pixel Param: image_url)
         $image_id = $product->get_image_id();
         if ($image_id) {
-            $data['image_URL'] = wp_get_attachment_url($image_id);
+            $data['image_url'] = wp_get_attachment_url($image_id);
         } else {
-            $data['image_URL'] = ''; // 或者是默认图片
+            $data['image_url'] = ''; // 或者是默认图片
         }
         
-        // Product URL (Pixel Param: product_URL)
-        $data['product_URL'] = $product->get_permalink();
+        // Product URL (Pixel Param: product_url)
+        $data['product_url'] = $product->get_permalink();
         
         // Content Category (Pixel Param: content_category)
         $data['content_category'] = '';
