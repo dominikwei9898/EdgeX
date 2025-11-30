@@ -40,6 +40,13 @@ class EverShop_TikTok {
     private function setup_hooks() {
         // Admin Settings
         add_action('admin_init', [$this, 'register_settings']);
+        
+        // Admin Menu
+        add_action('admin_menu', [$this, 'add_catalog_menu']);
+        
+        // AJAX Handlers
+        add_action('wp_ajax_tiktok_upload_to_catalog', [$this, 'ajax_upload_to_catalog']);
+        add_action('wp_ajax_tiktok_get_products', [$this, 'ajax_get_products']);
 
         // 如果没有配置 Pixel ID，不执行后续操作
         if (empty(self::$pixel_id)) {
@@ -80,6 +87,484 @@ class EverShop_TikTok {
         register_setting('evershop_tiktok_settings', 'evershop_tiktok_api_endpoint');
         // 注册 Test Mode 选项
         register_setting('evershop_tiktok_settings', 'evershop_tiktok_test_mode');
+        // TikTok Catalog API 设置
+        register_setting('evershop_tiktok_settings', 'evershop_tiktok_catalog_id');
+        register_setting('evershop_tiktok_settings', 'evershop_tiktok_app_key');
+        register_setting('evershop_tiktok_settings', 'evershop_tiktok_app_secret');
+    }
+
+    /**
+     * 在后台管理页面中注入 TikTok Pixel 脚本
+     * 用于 Pixel Upload 功能
+     */
+    private function inject_pixel_script_for_admin() {
+        if (empty(self::$pixel_id)) {
+            return;
+        }
+        ?>
+        <!-- TikTok Pixel Code for Admin (Pixel Upload) -->
+        <script>
+        !function (w, d, t) {
+          w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(
+        var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};n=document.createElement("script")
+        ;n.type="text/javascript",n.async=!0,n.src=r+"?sdkid="+e+"&lib="+t;e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)};
+          ttq.load('<?php echo esc_js(self::$pixel_id); ?>');
+          ttq.page();
+          
+          // 在控制台显示 Pixel 已加载
+          console.log('✅ TikTok Pixel 已加载 (Admin): <?php echo esc_js(self::$pixel_id); ?>');
+        }(window, document, 'ttq');
+        </script>
+        <!-- End TikTok Pixel Code -->
+        <?php
+    }
+
+    /**
+     * 添加后台管理菜单
+     */
+    public function add_catalog_menu() {
+        add_submenu_page(
+            'woocommerce',
+            'TikTok Catalog 管理',
+            'TikTok Catalog',
+            'manage_woocommerce',
+            'tiktok-catalog',
+            [$this, 'render_catalog_page']
+        );
+    }
+
+    /**
+     * 渲染 Catalog 管理页面
+     */
+    public function render_catalog_page() {
+        // 在后台页面中也加载 TikTok Pixel 脚本
+        $this->inject_pixel_script_for_admin();
+        ?>
+        <div class="wrap">
+            <h1>TikTok Catalog 产品管理 (Pixel Upload)</h1>
+            
+            <div style="background: #fff; padding: 20px; margin: 20px 0; border: 1px solid #ccc;">
+                <h2>Pixel 配置状态</h2>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">Pixel ID</th>
+                        <td>
+                            <code><?php echo esc_html(get_option('evershop_tiktok_pixel_id') ?: '未配置'); ?></code>
+                            <?php if (get_option('evershop_tiktok_pixel_id')): ?>
+                                <span style="color: #46b450; margin-left: 10px;">✓ 已配置</span>
+                            <?php else: ?>
+                                <span style="color: #dc3232; margin-left: 10px;">✗ 未配置</span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Access Token</th>
+                        <td>
+                            <?php if (get_option('evershop_tiktok_access_token')): ?>
+                                <code>••••••••••••••••</code>
+                                <span style="color: #46b450; margin-left: 10px;">✓ 已配置</span>
+                            <?php else: ?>
+                                <code>未配置</code>
+                                <span style="color: #dc3232; margin-left: 10px;">✗ 未配置</span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                </table>
+                <p class="description">
+                    如需修改配置，请在 EverShop 插件设置页面中配置 Pixel ID 和 Access Token
+                </p>
+            </div>
+
+            <div style="background: #fff; padding: 20px; margin: 20px 0; border: 1px solid #ccc;">
+                <h2>产品列表</h2>
+                
+                <div style="margin-bottom: 15px;">
+                    <button type="button" class="button button-primary" id="tiktok-upload-selected">
+                        📤 上传选中的产品到 TikTok Catalog (Pixel Upload)
+                    </button>
+                    <button type="button" class="button" id="tiktok-select-all">全选</button>
+                    <button type="button" class="button" id="tiktok-deselect-all">取消全选</button>
+                    <span id="selected-count" style="margin-left: 15px;">已选择: <strong>0</strong> 个产品</span>
+                </div>
+
+                <div id="upload-progress" style="display: none; margin-bottom: 15px; padding: 10px; background: #e7f3ff; border-left: 4px solid #0073aa;">
+                    <div id="progress-text">正在触发 Pixel 事件...</div>
+                    <progress id="progress-bar" value="0" max="100" style="width: 100%; height: 25px;"></progress>
+                    <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">
+                        💡 提示：产品信息将在触发事件后的 15 分钟内同步到 TikTok Catalog
+                    </p>
+                </div>
+
+                <div id="upload-results" style="display: none; margin-bottom: 15px;"></div>
+
+                <table class="wp-list-table widefat fixed striped" id="tiktok-products-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;">
+                                <input type="checkbox" id="select-all-checkbox">
+                            </th>
+                            <th style="width: 60px;">图片</th>
+                            <th>产品名称</th>
+                            <th>SKU</th>
+                            <th style="width: 100px;">类型</th>
+                            <th style="width: 80px;">价格</th>
+                            <th style="width: 80px;">库存</th>
+                            <th style="width: 120px;">状态</th>
+                        </tr>
+                    </thead>
+                    <tbody id="products-tbody">
+                        <tr>
+                            <td colspan="8" style="text-align: center; padding: 20px;">
+                                加载中...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <style>
+            .product-image { max-width: 50px; height: auto; }
+            .product-type-badge { 
+                display: inline-block; 
+                padding: 3px 8px; 
+                background: #0073aa; 
+                color: #fff; 
+                border-radius: 3px; 
+                font-size: 11px; 
+            }
+            .product-type-badge.variable { background: #f0ad4e; }
+            .upload-status { font-weight: bold; }
+            .upload-status.success { color: #46b450; }
+            .upload-status.error { color: #dc3232; }
+            .upload-status.pending { color: #999; }
+            .variations-list {
+                margin-top: 5px;
+                padding-left: 20px;
+                font-size: 0.9em;
+                color: #666;
+            }
+            .variations-list li {
+                list-style: disc;
+                margin: 2px 0;
+            }
+        </style>
+
+        <script>
+        jQuery(document).ready(function($) {
+            let productsData = [];
+            let selectedProducts = new Set();
+
+            // 加载产品列表
+            function loadProducts() {
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'tiktok_get_products'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            productsData = response.data;
+                            renderProducts(productsData);
+                        } else {
+                            $('#products-tbody').html('<tr><td colspan="8" style="text-align: center; color: red;">加载失败: ' + response.data.message + '</td></tr>');
+                        }
+                    },
+                    error: function() {
+                        $('#products-tbody').html('<tr><td colspan="8" style="text-align: center; color: red;">加载失败，请刷新页面重试</td></tr>');
+                    }
+                });
+            }
+
+            // 渲染产品列表
+            function renderProducts(products) {
+                let html = '';
+                products.forEach(function(product) {
+                    let typeClass = product.type === 'variable' ? 'variable' : '';
+                    let variationsHtml = '';
+                    
+                    if (product.variations && product.variations.length > 0) {
+                        variationsHtml = '<ul class="variations-list">';
+                        product.variations.forEach(function(variation) {
+                            variationsHtml += '<li>' + variation.name + ' (SKU: ' + variation.sku + ')</li>';
+                        });
+                        variationsHtml += '</ul>';
+                    }
+                    
+                    html += '<tr data-product-id="' + product.id + '">';
+                    html += '<td><input type="checkbox" class="product-checkbox" value="' + product.id + '"></td>';
+                    html += '<td><img src="' + product.image + '" class="product-image" /></td>';
+                    html += '<td>' + product.name + variationsHtml + '</td>';
+                    html += '<td>' + product.sku + '</td>';
+                    html += '<td><span class="product-type-badge ' + typeClass + '">' + product.type + '</span></td>';
+                    html += '<td>' + product.price + '</td>';
+                    html += '<td>' + product.stock + '</td>';
+                    html += '<td><span class="upload-status pending" data-product-id="' + product.id + '">未上传</span></td>';
+                    html += '</tr>';
+                });
+                
+                $('#products-tbody').html(html);
+            }
+
+            // 更新选中数量
+            function updateSelectedCount() {
+                $('#selected-count strong').text(selectedProducts.size);
+            }
+
+            // 产品复选框
+            $('body').on('change', '.product-checkbox', function() {
+                let productId = $(this).val();
+                if ($(this).is(':checked')) {
+                    selectedProducts.add(productId);
+                } else {
+                    selectedProducts.delete(productId);
+                }
+                updateSelectedCount();
+            });
+
+            // 全选
+            $('#select-all-checkbox, #tiktok-select-all').on('click', function() {
+                $('.product-checkbox').prop('checked', true).trigger('change');
+            });
+
+            // 取消全选
+            $('#tiktok-deselect-all').on('click', function() {
+                $('.product-checkbox').prop('checked', false);
+                selectedProducts.clear();
+                updateSelectedCount();
+            });
+
+            // 上传到 Catalog
+            $('#tiktok-upload-selected').on('click', function() {
+                if (selectedProducts.size === 0) {
+                    alert('请至少选择一个产品');
+                    return;
+                }
+
+                let confirmMsg = '确定要上传 ' + selectedProducts.size + ' 个产品到 TikTok Catalog 吗？\n\n';
+                confirmMsg += '📌 工作原理：\n';
+                confirmMsg += '• 在浏览器中使用 TikTok Pixel (ttq.track) 触发 ViewContent 事件\n';
+                confirmMsg += '• TikTok 自动从 Browser Pixel 事件中提取产品信息\n';
+                confirmMsg += '• 产品将在 15 分钟内同步到 Catalog\n';
+                confirmMsg += '• 变体产品的所有变体都会被触发\n\n';
+                confirmMsg += '⚠️ 请确保：\n';
+                confirmMsg += '• Pixel ID 已正确配置\n';
+                confirmMsg += '• 浏览器未安装广告拦截插件（会阻止 Pixel）';
+                
+                if (!confirm(confirmMsg)) {
+                    return;
+                }
+
+                let productIds = Array.from(selectedProducts);
+                uploadProducts(productIds);
+            });
+
+            // 上传产品到 TikTok (使用 Browser Pixel)
+            function uploadProducts(productIds) {
+                $('#upload-progress').show();
+                $('#upload-results').hide().html('');
+                $('#progress-bar').val(0);
+                $('#progress-text').text('正在触发 Pixel 事件 0/' + productIds.length);
+
+                let completed = 0;
+                let results = { success: [], error: [] };
+                let allProductsData = []; // 存储所有产品数据
+
+                // 第一步：获取所有产品数据
+                function fetchProductData(index) {
+                    if (index >= productIds.length) {
+                        // 所有数据已获取，开始触发 Browser Pixel 事件
+                        triggerBrowserPixelEvents();
+                        return;
+                    }
+
+                    let productId = productIds[index];
+                    
+                    $.ajax({
+                        url: ajaxurl,
+                        type: 'POST',
+                        data: {
+                            action: 'tiktok_upload_to_catalog',
+                            product_id: productId
+                        },
+                        success: function(response) {
+                            if (response.success && response.data.products_data) {
+                                allProductsData.push({
+                                    productId: productId,
+                                    productName: response.data.product_name,
+                                    products: response.data.products_data
+                                });
+                            } else {
+                                results.error.push({ 
+                                    id: productId, 
+                                    message: response.data.message || '获取产品数据失败' 
+                                });
+                            }
+                            fetchProductData(index + 1);
+                        },
+                        error: function() {
+                            results.error.push({ id: productId, message: '网络错误' });
+                            fetchProductData(index + 1);
+                        }
+                    });
+                }
+
+                // 第二步：触发 Browser Pixel 事件
+                function triggerBrowserPixelEvents() {
+                    // 检查 TikTok Pixel 是否已加载
+                    if (typeof ttq === 'undefined') {
+                        console.error('❌ TikTok Pixel (ttq) 未定义');
+                        alert('TikTok Pixel 未加载，请确保 Pixel ID 已正确配置\n\n请刷新页面后重试');
+                        $('#upload-progress').hide();
+                        return;
+                    }
+                    
+                    console.log('✅ TikTok Pixel 已检测到:', ttq);
+
+                    let totalEvents = 0;
+                    let completedEvents = 0;
+
+                    // 计算总事件数
+                    allProductsData.forEach(function(item) {
+                        totalEvents += item.products.length;
+                    });
+
+                    if (totalEvents === 0) {
+                        showResults(results);
+                        return;
+                    }
+                    
+                    console.log('📊 准备触发 ' + totalEvents + ' 个 Pixel 事件');
+
+                    // 逐个触发事件（延迟避免过快）
+                    let eventQueue = [];
+                    allProductsData.forEach(function(item) {
+                        item.products.forEach(function(productData) {
+                            eventQueue.push({
+                                mainProductId: item.productId,
+                                mainProductName: item.productName,
+                                data: productData
+                            });
+                        });
+                    });
+
+                    function triggerNext(index) {
+                        if (index >= eventQueue.length) {
+                            // 所有事件触发完成
+                            console.log('✅ 所有 Pixel 事件触发完成');
+                            showResults(results);
+                            return;
+                        }
+
+                        let eventData = eventQueue[index];
+                        let productData = eventData.data;
+
+                        try {
+                            // 生成唯一的 event_id
+                            let eventId = 'catalog_' + productData.product_id + '_' + Date.now();
+
+                            console.log('🚀 触发 Pixel 事件 [' + (index + 1) + '/' + eventQueue.length + ']:', {
+                                product_id: productData.product_id,
+                                product_name: productData.product_name,
+                                sku_id: productData.sku_id,
+                                event_id: eventId,
+                                pixel_data: productData.pixel_data  // ✅ 完整的 pixel_data 对象
+                            });
+
+                            // 触发 Browser Pixel ViewContent 事件
+                            ttq.track('ViewContent', productData.pixel_data, {
+                                event_id: eventId
+                            });
+
+                            // 记录成功
+                            results.success.push({
+                                id: eventData.mainProductId,
+                                name: eventData.mainProductName
+                            });
+
+                            // 更新状态
+                            $('.upload-status[data-product-id="' + eventData.mainProductId + '"]')
+                                .removeClass('pending error')
+                                .addClass('success')
+                                .text('✓ 已触发');
+
+                            console.log('✅ Pixel 事件已触发:', productData.sku_id, eventId);
+
+                        } catch (error) {
+                            console.error('❌ Pixel 事件触发失败:', error);
+                            results.error.push({
+                                id: eventData.mainProductId,
+                                message: 'Pixel 事件触发失败: ' + error.message
+                            });
+
+                            $('.upload-status[data-product-id="' + eventData.mainProductId + '"]')
+                                .removeClass('pending success')
+                                .addClass('error')
+                                .text('✗ 失败');
+                        }
+
+                        completedEvents++;
+                        let progress = Math.round((completedEvents / totalEvents) * 100);
+                        $('#progress-bar').val(progress);
+                        $('#progress-text').text('正在触发 Pixel 事件 ' + completedEvents + '/' + totalEvents);
+
+                        // 延迟触发下一个事件（避免过快，每个事件间隔200ms）
+                        setTimeout(function() {
+                            triggerNext(index + 1);
+                        }, 200);
+                    }
+
+                    // 开始触发第一个事件
+                    triggerNext(0);
+                }
+
+                // 开始获取产品数据
+                fetchProductData(0);
+            }
+
+            // 显示上传结果
+            function showResults(results) {
+                let html = '<div style="padding: 15px; border: 1px solid #ccc; background: #fff;">';
+                html += '<h3>✅ Browser Pixel 事件触发完成</h3>';
+                
+                if (results.success.length > 0) {
+                    html += '<p style="color: #46b450;"><strong>✓ 成功: ' + results.success.length + ' 个产品</strong></p>';
+                    html += '<div style="background: #e7f3ff; padding: 10px; border-radius: 3px; margin: 10px 0;">';
+                    html += '<strong>📌 下一步：</strong><br>';
+                    html += '• 产品信息将在 <strong>15 分钟内</strong>自动同步到 TikTok Catalog<br>';
+                    html += '• 请前往 TikTok Ads Manager → Catalog 查看更新状态<br>';
+                    html += '• 可以使用 TikTok Pixel Helper 浏览器插件验证事件是否成功触发<br>';
+                    html += '• 如果是变体产品，所有变体都已被触发';
+                    html += '</div>';
+                    html += '<div style="background: #fff3cd; padding: 10px; border-radius: 3px; margin: 10px 0; border-left: 3px solid #ffc107;">';
+                    html += '<strong>💡 提示：</strong><br>';
+                    html += '• 首次配置 Pixel Upload 时，需要在 TikTok Ads Manager 中设置 Catalog 连接<br>';
+                    html += '• 路径：Catalog → Add Products → Pixel Upload → 选择您的 Pixel<br>';
+                    html += '• 添加信任的网站域名（Trusted Websites）';
+                    html += '</div>';
+                }
+                
+                if (results.error.length > 0) {
+                    html += '<p style="color: #dc3232;"><strong>✗ 失败: ' + results.error.length + ' 个产品</strong></p>';
+                    html += '<ul>';
+                    results.error.forEach(function(err) {
+                        html += '<li>产品 ID ' + err.id + ': ' + err.message + '</li>';
+                    });
+                    html += '</ul>';
+                }
+                
+                html += '</div>';
+                
+                $('#upload-results').html(html).show();
+                $('#upload-progress').hide();
+            }
+
+            // 初始加载
+            loadProducts();
+        });
+        </script>
+        <?php
     }
 
     /**
@@ -115,6 +600,10 @@ class EverShop_TikTok {
         // 1. 跟踪用户浏览产品页面的行为（用于广告优化和再营销）
         // 2. 通过 Pixel Upload 自动将产品信息同步到 TikTok Catalog
         // 3. TikTok 会从此事件中提取产品数据并更新产品目录
+        // 
+        // 📌 防重复机制：
+        // - 使用 window.evershop_tiktok_tracked 标记防止同一页面重复触发
+        // - 确保只在页面加载时触发一次
         // ═══════════════════════════════════════════════════════════════════
         if (is_product()) {
             $product_id = get_queried_object_id();
@@ -124,72 +613,62 @@ class EverShop_TikTok {
                 $catalog_data = $this->get_tiktok_catalog_data($product);
             ?>
             <script>
-            // Browser Side: ViewContent Event
-            // 参考文档: https://ads.tiktok.com/help/article/how-to-use-pixel-upload-with-catalogs
-            ttq.track('ViewContent', {
-                // ─────────────────────────────────────────────
-                // contents 数组（必需）
-                // 用途：包含产品的基本标识信息
-                // ─────────────────────────────────────────────
-                "contents": [
-                    {
-                        // Catalog: sku_id | Pixel: content_id
-                        // 产品唯一标识符（SKU 或产品 ID）
-                        "content_id": "<?php echo esc_js($catalog_data['sku_id']); ?>",
-                        
-                        // Catalog: title | Pixel: content_name
-                        // 产品名称
-                        "content_name": "<?php echo esc_js($product->get_name()); ?>"
-                    }
-                ],
+            // ═══════════════════════════════════════════════════════════════════
+            // 防重复检查机制
+            // ═══════════════════════════════════════════════════════════════════
+            if (typeof window.evershop_tiktok_tracked === 'undefined') {
+                window.evershop_tiktok_tracked = {};
+            }
+            
+            // 生成唯一的页面标识（基于产品 ID）
+            var pageKey = 'viewcontent_<?php echo esc_js($product_id); ?>';
+            
+            // 如果此页面还未被跟踪，则发送事件
+            if (!window.evershop_tiktok_tracked[pageKey]) {
+                window.evershop_tiktok_tracked[pageKey] = true;
                 
-                // ─────────────────────────────────────────────
-                // 外层必需字段（Required for Catalog Upload）
-                // 用途：TikTok 从这些字段中提取数据并同步到 Catalog
-                // ─────────────────────────────────────────────
+                // Browser Side: ViewContent Event
+                // 参考文档: https://ads.tiktok.com/help/article/how-to-use-pixel-upload-with-catalogs
                 
-                // Pixel: price (必需 - number 类型)
-                // 产品单价（用于 Catalog 和事件跟踪）
-                "price": <?php echo $product->get_price() ?: 0; ?>,
+                // 生成唯一的 event_id（用于去重）
+                var eventId = 'vc_<?php echo uniqid(); ?>_' + Date.now();
                 
-                // Pixel: currency (必需)
-                // 货币代码（ISO 4217 标准，如 USD, EUR）
-                "currency": "<?php echo get_woocommerce_currency(); ?>",
-                
-                // Pixel: value (必需)
-                // 订单总价值（对于单品浏览，等于 price）
-                "value": <?php echo $product->get_price() ?: 0; ?>,
-                
-                // Catalog: description | Pixel: description (必需)
-                // 产品描述
-                "description": "<?php echo esc_js($catalog_data['description']); ?>",
-                
-                // Catalog: availability | Pixel: availability (必需)
-                // 库存状态: "in stock", "available for order", "preorder", "out of stock", "discontinued"
-                "availability": "<?php echo esc_js($catalog_data['availability']); ?>",
-                
-                <?php if (isset($catalog_data['image_url'])): ?>
-                // Catalog: image | Pixel: image_url (必需)
-                // 产品图片 URL（用于广告创意生成）
-                "image_url": "<?php echo esc_url($catalog_data['image_url']); ?>",
-                <?php endif; ?>
-                
-                // Catalog: link | Pixel: product_url (必需)
-                // 产品落地页 URL
-                "product_url": "<?php echo esc_url($catalog_data['product_url']); ?>",
-                
-                // ─────────────────────────────────────────────
-                // 可选字段（Optional but Recommended）
-                // ─────────────────────────────────────────────
-                
-                // Pixel: content_type (可选)
-                // 内容类型: "product" 或 "product_group"
-                "content_type": "product",
-                
-                // Pixel: content_category (可选)
-                // 产品类别（用于广告定位优化）
-                "content_category": "<?php echo esc_js($catalog_data['content_category']); ?>"
-            });
+                ttq.track('ViewContent', {
+                    // ─────────────────────────────────────────────
+                    // contents 数组（必需）
+                    // 符合官方标准格式
+                    // ─────────────────────────────────────────────
+                    "contents": [
+                        {
+                            "content_id": "<?php echo esc_js($catalog_data['sku_id']); ?>",
+                            "content_type": "product",  // ✅ 官方必需字段
+                            "content_name": "<?php echo esc_js($product->get_name()); ?>",
+                            "content_category": "<?php echo esc_js($catalog_data['content_category']); ?>",
+                            "price": <?php echo $product->get_price() ?: 0; ?>
+                        }
+                    ],
+                    
+                    // ─────────────────────────────────────────────
+                    // 外层标准字段（符合官方 API 规范）
+                    // ─────────────────────────────────────────────
+                    "value": <?php echo $product->get_price() ?: 0; ?>,
+                    "currency": "<?php echo get_woocommerce_currency(); ?>",
+                    "description": "<?php echo esc_js($catalog_data['description']); ?>",
+                    
+                    // ─────────────────────────────────────────────
+                    // Catalog Upload 专用字段（用于产品同步）
+                    // 这些字段不在官方标准事件模板中，但用于 Pixel Upload
+                    // ─────────────────────────────────────────────
+                    "availability": "<?php echo esc_js($catalog_data['availability']); ?>",
+                    <?php if (isset($catalog_data['image_url'])): ?>
+                    "image_url": "<?php echo esc_url($catalog_data['image_url']); ?>",
+                    <?php endif; ?>
+                    "product_url": "<?php echo esc_url($catalog_data['product_url']); ?>"
+                }, {
+                    // ✅ 官方推荐：event_id 用于去重
+                    "event_id": eventId
+                });
+            } // 结束防重复检查
             
             // ═══════════════════════════════════════════════════════════════════
             // AddToCart Event Listener (Browser Side - 加购事件监听器)
@@ -199,9 +678,23 @@ class EverShop_TikTok {
             // 2. 当用户点击"加入购物车"按钮时触发 TikTok Pixel 事件
             // 3. 支持变体产品（可选不同尺寸、颜色等）
             // 4. 用于广告优化和转化跟踪
+            // 
+            // 📌 防重复机制：
+            // - 使用时间戳检查，避免短时间内重复触发
+            // - 每次加购至少间隔 1 秒才会发送新事件
             // ═══════════════════════════════════════════════════════════════════
             jQuery(document).ready(function($) {
+                var lastAddToCartTime = 0;
+                
                 $('body').on('added_to_cart', function(event, fragments, cart_hash, $button) {
+                    // 防重复检查：1 秒内只触发一次
+                    var now = Date.now();
+                    if (now - lastAddToCartTime < 1000) {
+                        console.log('TikTok: AddToCart 事件被防重复机制拦截');
+                        return;
+                    }
+                    lastAddToCartTime = now;
+                    
                     // 默认使用主产品数据
                     var content_id = "<?php echo esc_js($catalog_data['sku_id']); ?>";
                     var content_name = "<?php echo esc_js($product->get_name()); ?>";
@@ -224,37 +717,36 @@ class EverShop_TikTok {
                         }
                     }
 
+                    // 生成唯一的 event_id
+                    var eventId = 'atc_' + content_id + '_' + now;
+
                     // Browser Side: AddToCart Event
                     ttq.track('AddToCart', {
-                        // ─────────────────────────────────────────────
-                        // contents 数组（必需）
-                        // ─────────────────────────────────────────────
                         "contents": [
                             {
                                 "content_id": content_id,
-                                "content_name": content_name
+                                "content_type": "product",  // ✅ 官方必需字段
+                                "content_name": content_name,
+                                "content_category": "<?php echo esc_js($catalog_data['content_category']); ?>",
+                                "price": price
                             }
                         ],
-                        
-                        // ─────────────────────────────────────────────
-                        // 外层必需字段（Required for Catalog Upload）
-                        // ─────────────────────────────────────────────
-                        "price": price,
-                        "currency": "<?php echo get_woocommerce_currency(); ?>",
                         "value": price,
+                        "currency": "<?php echo get_woocommerce_currency(); ?>",
                         "description": "<?php echo esc_js($catalog_data['description']); ?>",
+                        
+                        // Catalog Upload 专用字段
                         "availability": "<?php echo esc_js($catalog_data['availability']); ?>",
                         <?php if (isset($catalog_data['image_url'])): ?>
                         "image_url": "<?php echo esc_url($catalog_data['image_url']); ?>",
                         <?php endif; ?>
-                        "product_url": "<?php echo esc_url($catalog_data['product_url']); ?>",
-                        
-                        // 可选字段
-                        "content_type": "product",
-                        "content_category": "<?php echo esc_js($catalog_data['content_category']); ?>"
+                        "product_url": "<?php echo esc_url($catalog_data['product_url']); ?>"
+                    }, {
+                        // ✅ 官方推荐：event_id 用于去重
+                        "event_id": eventId
                     });
                 });
-                });
+            });
             });
             </script>
             <?php
@@ -269,6 +761,8 @@ class EverShop_TikTok {
                 "contents": [],
                 "search_string": "<?php echo esc_js(get_search_query()); ?>",
                 "currency": "<?php echo get_woocommerce_currency(); ?>"
+            }, {
+                "event_id": "search_<?php echo uniqid(); ?>_" + Date.now()
             });
             </script>
             <?php
@@ -292,19 +786,28 @@ class EverShop_TikTok {
                 }
                 ?>
                 <script>
+                // 生成唯一的 event_id
+                var checkoutEventId = 'ic_<?php echo uniqid(); ?>_' + Date.now();
+                
                 ttq.track('InitiateCheckout', {
                     "contents": <?php echo json_encode($contents); ?>,
                     "value": <?php echo $cart->get_total('float'); ?>,
                     "currency": "<?php echo get_woocommerce_currency(); ?>"
+                }, {
+                    "event_id": checkoutEventId
                 });
 
                 // AddPaymentInfo Trigger (on Place Order click)
                 jQuery(document).ready(function($) {
                     $('form.checkout').on('checkout_place_order', function() {
+                        var paymentEventId = 'api_<?php echo uniqid(); ?>_' + Date.now();
+                        
                         ttq.track('AddPaymentInfo', {
                             "contents": <?php echo json_encode($contents); ?>,
                             "value": <?php echo $cart->get_total('float'); ?>,
                             "currency": "<?php echo get_woocommerce_currency(); ?>"
+                        }, {
+                            "event_id": paymentEventId
                         });
                     });
                 });
@@ -338,7 +841,7 @@ class EverShop_TikTok {
                         "value": <?php echo $order->get_total(); ?>,
                         "currency": "<?php echo $order->get_currency(); ?>"
                     }, {
-                        event_id: "<?php echo $order_id; ?>"
+                        "event_id": "purchase_<?php echo $order_id; ?>"  // ✅ 使用字符串格式
                     });
                     </script>
                     <?php
@@ -362,13 +865,25 @@ class EverShop_TikTok {
         // SHA-256 Hashing
         $hashed_email = hash('sha256', strtolower(trim($email)));
         $hashed_external_id = hash('sha256', (string)$user_id);
+        $hashed_phone = hash('sha256', (string)$current_user->user_phone);
+        // 尝试获取手机号（WordPress 默认没有 user_phone 字段）
+        $phone = get_user_meta($user_id, 'billing_phone', true);
+        $identify_data = [
+            "email" => $hashed_email,
+            "external_id" => $hashed_external_id
+        ];
         
+        // 只有在手机号存在时才添加（符合官方要求）
+        if (!empty($phone)) {
+            // 移除所有非数字字符后再哈希
+            $phone_digits = preg_replace('/[^0-9]/', '', $phone);
+            if (!empty($phone_digits)) {
+                $identify_data["phone_number"] = hash('sha256', $phone_digits);
+            }
+        }
         ?>
         <script>
-        ttq.identify({
-            "email": "<?php echo $hashed_email; ?>",
-            "external_id": "<?php echo $hashed_external_id; ?>"
-        });
+        ttq.identify(<?php echo json_encode($identify_data, JSON_UNESCAPED_UNICODE); ?>);
         </script>
         <?php
     }
@@ -396,9 +911,18 @@ class EverShop_TikTok {
      * 1. 补充 Browser Side 的 ViewContent 事件数据
      * 2. 通过 Event ID 与 Browser Side 事件去重
      * 3. 提供更可靠的浏览数据（不受广告拦截器影响）
+     * 📌 注意：此方法已被禁用，避免与浏览器端事件重复
+     * - Browser Pixel 已经在产品页发送 ViewContent
+     * - 服务器端重复发送会导致数据重复统计
+     * - 如需启用，必须确保与浏览器端使用相同的 event_id 去重
      * ═══════════════════════════════════════════════════════════════════
      */
     public function track_server_view_content() {
+        // ⚠️ 已禁用服务器端 ViewContent，避免与浏览器端重复
+        // 原因：TikTok Pixel Helper 显示同一页面有多个 ViewContent 事件
+        // 解决方案：只使用浏览器端 Pixel Upload 来跟踪 ViewContent
+        return;
+        
         if (!is_product()) return;
         
         $product_id = get_queried_object_id();
@@ -889,4 +1413,246 @@ class EverShop_TikTok {
         
         return $data;
     }
+
+    /**
+     * AJAX: 获取产品列表
+     */
+    public function ajax_get_products() {
+        try {
+            $products = [];
+            
+            // 仅获取已发布的产品
+            $args = [
+                'post_type' => 'product',
+                'posts_per_page' => -1,
+                'post_status' => 'publish'  // ✅ 只获取已发布的产品
+            ];
+            
+            $query = new WP_Query($args);
+            
+            if ($query->have_posts()) {
+                while ($query->have_posts()) {
+                    $query->the_post();
+                    $product_id = get_the_ID();
+                    $product = wc_get_product($product_id);
+                    
+                    // 跳过无效产品
+                    if (!$product) continue;
+                    
+                    // 再次确认产品状态为已发布
+                    if ($product->get_status() !== 'publish') continue;
+                    
+                    $product_data = [
+                        'id' => $product_id,
+                        'name' => $product->get_name(),
+                        'sku' => $product->get_sku() ?: 'product_' . $product_id,
+                        'type' => $product->get_type(),
+                        'price' => wc_price($product->get_price()),
+                        'stock' => $product->get_stock_status() === 'instock' ? '有货' : '缺货',
+                        'image' => wp_get_attachment_url($product->get_image_id()) ?: wc_placeholder_img_src()
+                    ];
+                    
+                    // 如果是变体产品，获取所有已发布的变体
+                    if ($product->is_type('variable')) {
+                        $variations = $product->get_available_variations();
+                        $product_data['variations'] = [];
+                        
+                        foreach ($variations as $variation) {
+                            $variation_obj = wc_get_product($variation['variation_id']);
+                            
+                            // 跳过无效或未发布的变体
+                            if (!$variation_obj) continue;
+                            if ($variation_obj->get_status() !== 'publish') continue;
+                            
+                            $product_data['variations'][] = [
+                                'id' => $variation['variation_id'],
+                                'name' => implode(', ', $variation['attributes']),
+                                'sku' => $variation_obj->get_sku() ?: 'variation_' . $variation['variation_id'],
+                                'price' => $variation_obj->get_price()
+                            ];
+                        }
+                    }
+                    
+                    $products[] = $product_data;
+                }
+                wp_reset_postdata();
+            }
+            
+            wp_send_json_success($products);
+            
+        } catch (Exception $e) {
+            wp_send_json_error(['message' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * AJAX: 获取产品的 Catalog 数据（用于前端 Browser Pixel Upload）
+     * 仅处理已发布的产品
+     */
+    public function ajax_upload_to_catalog() {
+        try {
+            $product_id = isset($_POST['product_id']) ? intval($_POST['product_id']) : 0;
+            
+            if (!$product_id) {
+                throw new Exception('无效的产品 ID');
+            }
+            
+            $product = wc_get_product($product_id);
+            
+            if (!$product) {
+                throw new Exception('产品不存在');
+            }
+            
+            // ✅ 确保产品已发布
+            if ($product->get_status() !== 'publish') {
+                throw new Exception('该产品未发布，无法上传到 Catalog');
+            }
+            
+            $products_data = [];
+            
+            // 判断是否为变体产品
+            if ($product->is_type('variable')) {
+                // 变体产品：获取所有已发布的变体的数据
+                $variations = $product->get_available_variations();
+                
+                foreach ($variations as $variation) {
+                    $variation_obj = wc_get_product($variation['variation_id']);
+                    
+                    // ✅ 跳过无效或未发布的变体
+                    if (!$variation_obj) continue;
+                    if ($variation_obj->get_status() !== 'publish') continue;
+                    
+                    $products_data[] = $this->get_product_catalog_data_for_browser($variation_obj);
+                }
+                
+                // 也获取主产品数据（作为产品组）
+                $products_data[] = $this->get_product_catalog_data_for_browser($product);
+                
+            } else {
+                // 简单产品：直接获取数据
+                $products_data[] = $this->get_product_catalog_data_for_browser($product);
+            }
+            
+            // 检查是否有有效的产品数据
+            if (empty($products_data)) {
+                throw new Exception('没有可用的已发布产品数据');
+            }
+            
+            wp_send_json_success([
+                'product_name' => $product->get_name(),
+                'products_count' => count($products_data),
+                'products_data' => $products_data
+            ]);
+            
+        } catch (Exception $e) {
+            wp_send_json_error(['message' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * 获取产品的 Catalog 数据（用于 Browser Pixel）
+     * 返回符合 TikTok Pixel Upload 要求的数据格式
+     * 
+     * 根据官方文档: https://ads.tiktok.com/help/article/how-to-use-pixel-upload-with-catalogs
+     * 必填字段映射：
+     * - sku_id → content_id (在 contents 数组中)
+     * - title → content_name (在 contents 数组中)
+     * - price → price (在 contents 数组中，number 类型)
+     * - description → description (外层字段)
+     * - availability → availability (外层字段)
+     * - image → image_url (外层字段)
+     * - link → product_url (外层字段)
+     * - currency → currency (外层字段)
+     * - value → value (外层字段，number 类型)
+     */
+    private function get_product_catalog_data_for_browser($product) {
+        $catalog_data = $this->get_tiktok_catalog_data($product);
+        
+        // 构建 Browser Pixel 事件数据（严格按照官方文档）
+        $pixel_data = [
+            // ═══════════════════════════════════════════════════════════
+            // contents 数组（必需）- Either contents or content_id is required
+            // ═══════════════════════════════════════════════════════════
+            'contents' => [
+                [
+                    // ✅ sku_id → content_id (Required)
+                    'content_id' => $catalog_data['sku_id'],
+                    
+                    // ✅ title → content_name (Required, string)
+                    'content_name' => $product->get_name(),
+                    
+                    // ✅ price → price (Required, number)
+                    'price' => (float)$product->get_price(),
+                    
+                    // 可选：content_type (Optional, Must be either product or product_group)
+                    'content_type' => 'product',
+                    
+                    // 可选：content_category (Optional, string)
+                    'content_category' => $catalog_data['content_category']
+                ]
+            ],
+            
+            // ═══════════════════════════════════════════════════════════
+            // 外层必需字段（根据官方表格）
+            // ═══════════════════════════════════════════════════════════
+            
+            // ✅ description → description (Required)
+            'description' => $catalog_data['description'],
+            
+            // ✅ availability → availability (Required)
+            // 支持的值: in stock, available for order, preorder, out of stock, discontinued
+            'availability' => $catalog_data['availability'],
+            
+            // ✅ link → product_url (Required)
+            'product_url' => $catalog_data['product_url'],
+            
+            // ✅ currency → currency (Required, enum(string))
+            'currency' => get_woocommerce_currency(),
+            
+            // ✅ value → value (Required, number) - The total price of the order
+            'value' => (float)$product->get_price(),
+            
+            // ═══════════════════════════════════════════════════════════
+            // 可选字段（根据官方表格）
+            // ═══════════════════════════════════════════════════════════
+            
+            // quantity (Optional, number)
+            'quantity' => 1,
+            
+            // content_type (Optional, Must be either product or product_group)
+            'content_type' => 'product',
+            
+            // content_category (Optional, string)
+            'content_category' => $catalog_data['content_category']
+        ];
+        
+        // ✅ image → image_url (Required, ≥500x500, JPG or PNG)
+        if (isset($catalog_data['image_url'])) {
+            $pixel_data['image_url'] = $catalog_data['image_url'];
+        } else {
+            // 如果没有图片，使用占位图（确保必填字段不为空）
+            $pixel_data['image_url'] = wc_placeholder_img_src();
+        }
+        
+        // 如果是变体产品，添加 item_group_id 和特殊处理
+        if ($product->is_type('variation')) {
+            $parent = wc_get_product($product->get_parent_id());
+            if ($parent) {
+                // 变体产品关联到主产品
+                $pixel_data['item_group_id'] = $parent->get_sku() ?: 'product_' . $parent->get_id();
+                
+                // 变体产品的 content_type 应该是 product（不是 product_group）
+                $pixel_data['content_type'] = 'product';
+                $pixel_data['contents'][0]['content_type'] = 'product';
+            }
+        }
+        
+        return [
+            'product_id' => $product->get_id(),
+            'product_name' => $product->get_name(),
+            'sku_id' => $catalog_data['sku_id'],
+            'pixel_data' => $pixel_data
+        ];
+    }
+
 }
