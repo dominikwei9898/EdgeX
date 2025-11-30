@@ -131,8 +131,8 @@ class EverShop_TikTok {
                 "availability": "<?php echo esc_js($catalog_data['availability']); ?>",
                 "image_url": "<?php echo esc_url($catalog_data['image_url']); ?>",
                 "product_url": "<?php echo esc_url($catalog_data['product_url']); ?>",
-                "price": <?php echo $product->get_price() ?: 0; ?>,
-                "content_category": "<?php echo esc_js($catalog_data['content_category']); ?>",
+                "price": "<?php echo ($product->get_price() ?: 0) . ' ' . get_woocommerce_currency(); ?>",
+                "content_category": "Health > Vitamins & Supplements > Sports Nutrition",
                 "brand": "<?php echo esc_js($catalog_data['brand']); ?>",
                 "condition": "<?php echo esc_js($catalog_data['condition']); ?>"
             });
