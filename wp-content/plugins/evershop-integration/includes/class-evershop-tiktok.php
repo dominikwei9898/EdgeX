@@ -108,7 +108,14 @@ class EverShop_TikTok {
         // 1. Identify User
         $this->inject_identify_event();
 
-        // 2. ViewContent (Product Page)
+        // ═══════════════════════════════════════════════════════════════════
+        // 2. ViewContent Event (Browser Side - 产品页面浏览事件)
+        // ═══════════════════════════════════════════════════════════════════
+        // 📌 作用：
+        // 1. 跟踪用户浏览产品页面的行为（用于广告优化和再营销）
+        // 2. 通过 Pixel Upload 自动将产品信息同步到 TikTok Catalog
+        // 3. TikTok 会从此事件中提取产品数据并更新产品目录
+        // ═══════════════════════════════════════════════════════════════════
         if (is_product()) {
             $product_id = get_queried_object_id();
             $product = wc_get_product($product_id);
@@ -117,63 +124,136 @@ class EverShop_TikTok {
                 $catalog_data = $this->get_tiktok_catalog_data($product);
             ?>
             <script>
+            // Browser Side: ViewContent Event
+            // 参考文档: https://ads.tiktok.com/help/article/how-to-use-pixel-upload-with-catalogs
             ttq.track('ViewContent', {
+                // ─────────────────────────────────────────────
+                // contents 数组（必需）
+                // 用途：包含产品的基本标识信息
+                // ─────────────────────────────────────────────
                 "contents": [
                     {
-                        "content_id": "<?php echo $product->get_id(); ?>",
-                        "content_type": "product",
+                        // Catalog: sku_id | Pixel: content_id
+                        // 产品唯一标识符（SKU 或产品 ID）
+                        "content_id": "<?php echo esc_js($catalog_data['sku_id']); ?>",
+                        
+                        // Catalog: title | Pixel: content_name
+                        // 产品名称
                         "content_name": "<?php echo esc_js($product->get_name()); ?>"
                     }
                 ],
-                "value": <?php echo $product->get_price() ?: 0; ?>,
+                
+                // ─────────────────────────────────────────────
+                // 外层必需字段（Required for Catalog Upload）
+                // 用途：TikTok 从这些字段中提取数据并同步到 Catalog
+                // ─────────────────────────────────────────────
+                
+                // Pixel: price (必需 - number 类型)
+                // 产品单价（用于 Catalog 和事件跟踪）
+                "price": <?php echo $product->get_price() ?: 0; ?>,
+                
+                // Pixel: currency (必需)
+                // 货币代码（ISO 4217 标准，如 USD, EUR）
                 "currency": "<?php echo get_woocommerce_currency(); ?>",
+                
+                // Pixel: value (必需)
+                // 订单总价值（对于单品浏览，等于 price）
+                "value": <?php echo $product->get_price() ?: 0; ?>,
+                
+                // Catalog: description | Pixel: description (必需)
+                // 产品描述
                 "description": "<?php echo esc_js($catalog_data['description']); ?>",
+                
+                // Catalog: availability | Pixel: availability (必需)
+                // 库存状态: "in stock", "available for order", "preorder", "out of stock", "discontinued"
                 "availability": "<?php echo esc_js($catalog_data['availability']); ?>",
+                
+                <?php if (isset($catalog_data['image_url'])): ?>
+                // Catalog: image | Pixel: image_url (必需)
+                // 产品图片 URL（用于广告创意生成）
                 "image_url": "<?php echo esc_url($catalog_data['image_url']); ?>",
+                <?php endif; ?>
+                
+                // Catalog: link | Pixel: product_url (必需)
+                // 产品落地页 URL
                 "product_url": "<?php echo esc_url($catalog_data['product_url']); ?>",
-                "price": "<?php echo ($product->get_price() ?: 0) . ' ' . get_woocommerce_currency(); ?>",
-                "content_category": "Health > Vitamins & Supplements > Sports Nutrition",
-                "brand": "<?php echo esc_js($catalog_data['brand']); ?>",
-                "condition": "<?php echo esc_js($catalog_data['condition']); ?>"
+                
+                // ─────────────────────────────────────────────
+                // 可选字段（Optional but Recommended）
+                // ─────────────────────────────────────────────
+                
+                // Pixel: content_type (可选)
+                // 内容类型: "product" 或 "product_group"
+                "content_type": "product",
+                
+                // Pixel: content_category (可选)
+                // 产品类别（用于广告定位优化）
+                "content_category": "<?php echo esc_js($catalog_data['content_category']); ?>"
             });
             
-            // 额外添加 AddToCart 监听器 (Browser Side)
+            // ═══════════════════════════════════════════════════════════════════
+            // AddToCart Event Listener (Browser Side - 加购事件监听器)
+            // ═══════════════════════════════════════════════════════════════════
+            // 📌 作用：
+            // 1. 监听 WooCommerce 的 "added_to_cart" 事件
+            // 2. 当用户点击"加入购物车"按钮时触发 TikTok Pixel 事件
+            // 3. 支持变体产品（可选不同尺寸、颜色等）
+            // 4. 用于广告优化和转化跟踪
+            // ═══════════════════════════════════════════════════════════════════
             jQuery(document).ready(function($) {
                 $('body').on('added_to_cart', function(event, fragments, cart_hash, $button) {
-                    // 默认基础数据
-                    var content_id = "<?php echo $product->get_id(); ?>";
+                    // 默认使用主产品数据
+                    var content_id = "<?php echo esc_js($catalog_data['sku_id']); ?>";
                     var content_name = "<?php echo esc_js($product->get_name()); ?>";
-                    var price = <?php echo $product->get_price(); ?>;
+                    var price = <?php echo $product->get_price() ?: 0; ?>;
                     
-                    // [变体支持] 尝试获取当前表单选中的变体 ID
-                    // 1. 检查是否有 variation_id 输入框且有值
+                    // [变体支持] 如果是变体产品，尝试获取选中的变体信息
                     var $form = $button.closest('form.cart');
-                    if ($form.length === 0) $form = $('form.cart'); // fallback
+                    if ($form.length === 0) $form = $('form.cart');
                     
                     var $variation_input = $form.find('input[name="variation_id"]');
                     if ($variation_input.length > 0 && $variation_input.val() && $variation_input.val() != '0') {
-                        content_id = $variation_input.val(); // 使用变体 ID
+                        // 使用变体 ID 而不是主产品 ID
+                        content_id = $variation_input.val();
+                        
+                        // 尝试获取变体价格（如果有）
+                        var $price_input = $form.find('.woocommerce-variation-price .amount');
+                        if ($price_input.length > 0) {
+                            var price_text = $price_input.text().replace(/[^\d.]/g, '');
+                            if (price_text) price = parseFloat(price_text);
+                        }
                     }
 
+                    // Browser Side: AddToCart Event
                     ttq.track('AddToCart', {
+                        // ─────────────────────────────────────────────
+                        // contents 数组（必需）
+                        // ─────────────────────────────────────────────
                         "contents": [
                             {
                                 "content_id": content_id,
-                                "content_type": "product",
                                 "content_name": content_name
                             }
                         ],
-                        "value": price, 
+                        
+                        // ─────────────────────────────────────────────
+                        // 外层必需字段（Required for Catalog Upload）
+                        // ─────────────────────────────────────────────
+                        "price": price,
                         "currency": "<?php echo get_woocommerce_currency(); ?>",
+                        "value": price,
                         "description": "<?php echo esc_js($catalog_data['description']); ?>",
                         "availability": "<?php echo esc_js($catalog_data['availability']); ?>",
+                        <?php if (isset($catalog_data['image_url'])): ?>
                         "image_url": "<?php echo esc_url($catalog_data['image_url']); ?>",
+                        <?php endif; ?>
                         "product_url": "<?php echo esc_url($catalog_data['product_url']); ?>",
-                        "price": "<?php echo ($product->get_price() ?: 0) . ' ' . get_woocommerce_currency(); ?>",
-                        "content_category": "Health > Vitamins & Supplements > Sports Nutrition",
-                        "brand": "<?php echo esc_js($catalog_data['brand']); ?>",
-                        "condition": "<?php echo esc_js($catalog_data['condition']); ?>"
+                        
+                        // 可选字段
+                        "content_type": "product",
+                        "content_category": "<?php echo esc_js($catalog_data['content_category']); ?>"
                     });
+                });
                 });
             });
             </script>
@@ -293,10 +373,30 @@ class EverShop_TikTok {
         <?php
     }
 
-    // --- Server Side Events (Keep existing implementation) ---
+    // ═══════════════════════════════════════════════════════════════════
+    // SERVER SIDE EVENTS (服务器端事件)
+    // ═══════════════════════════════════════════════════════════════════
+    // 📌 Server Side Events 的作用：
+    // 1. 补充 Browser Side Pixel 的数据（双重跟踪，提高数据准确性）
+    // 2. 解决浏览器端被广告拦截器屏蔽的问题
+    // 3. 通过 Event ID 去重，避免重复计数
+    // 4. 提供更可靠的转化跟踪数据
+    // 
+    // 📌 与 Browser Side 的区别：
+    // - Browser Side: 实时性好，用于 Pixel Upload 同步 Catalog
+    // - Server Side: 可靠性高，用于补充和验证数据
+    // ═══════════════════════════════════════════════════════════════════
 
     /**
-     * Server Side: ViewContent
+     * ═══════════════════════════════════════════════════════════════════
+     * Server Side: ViewContent Event
+     * ═══════════════════════════════════════════════════════════════════
+     * 📌 触发时机：用户访问产品页面时
+     * 📌 作用：
+     * 1. 补充 Browser Side 的 ViewContent 事件数据
+     * 2. 通过 Event ID 与 Browser Side 事件去重
+     * 3. 提供更可靠的浏览数据（不受广告拦截器影响）
+     * ═══════════════════════════════════════════════════════════════════
      */
     public function track_server_view_content() {
         if (!is_product()) return;
@@ -306,70 +406,93 @@ class EverShop_TikTok {
         
         if (!$product) return;
 
-        // 生成唯一的 Event ID
+        // 生成唯一的 Event ID（用于与 Browser Side 事件去重）
         $event_id = uniqid('vc_');
 
-        // 获取 Catalog 必需字段
+        // 获取 Catalog 数据
         $catalog_data = $this->get_tiktok_catalog_data($product);
 
+        // 构建事件参数（遵循 TikTok Events API 规范）
         $properties = [
+            // contents 数组（产品基本信息）
             'contents' => [
                 [
-                    'content_id' => (string)$product->get_id(),
-                    'content_type' => 'product',
+                    'content_id' => $catalog_data['sku_id'],  // 使用 SKU ID
                     'content_name' => $product->get_name()
                 ]
             ],
-            'value' => (float)$product->get_price(),
-            'currency' => get_woocommerce_currency(),
             
-            // Catalog Fields
+            // 外层必需字段（Catalog Upload Required Fields）
+            'price' => (float)$product->get_price(),
+            'currency' => get_woocommerce_currency(),
+            'value' => (float)$product->get_price(),
             'description' => $catalog_data['description'],
             'availability' => $catalog_data['availability'],
-            'image_url' => $catalog_data['image_url'],
             'product_url' => $catalog_data['product_url'],
-            'price' => ($product->get_price() ?: 0) . ' ' . get_woocommerce_currency(),
-            'content_category' => $catalog_data['content_category'],
-            'brand' => $catalog_data['brand'],
-            'condition' => $catalog_data['condition']
+            
+            // 可选字段
+            'content_type' => 'product',
+            'content_category' => $catalog_data['content_category']
         ];
+        
+        // 添加图片 URL（如果存在）
+        if (isset($catalog_data['image_url'])) {
+            $properties['image_url'] = $catalog_data['image_url'];
+        }
 
+        // 发送到 TikTok Events API
         $this->send_server_event('ViewContent', $properties, [], $event_id);
     }
 
     /**
-     * Server Side: AddToCart
+     * ═══════════════════════════════════════════════════════════════════
+     * Server Side: AddToCart Event
+     * ═══════════════════════════════════════════════════════════════════
+     * 📌 触发时机：用户点击"加入购物车"按钮后（WooCommerce Hook）
+     * 📌 作用：
+     * 1. 补充 Browser Side 的 AddToCart 事件
+     * 2. 确保加购事件被准确记录（即使前端被拦截）
+     * 3. 用于广告优化和再营销
+     * ═══════════════════════════════════════════════════════════════════
      */
     public function track_server_add_to_cart($cart_item_key, $product_id, $quantity, $variation_id, $variation, $cart_item_data) {
         $product = wc_get_product($variation_id ? $variation_id : $product_id);
+        if (!$product) return;
+        
         $event_id = uniqid('atc_'); 
 
-        // 获取 Catalog 必需字段
+        // 获取 Catalog 数据
         $catalog_data = $this->get_tiktok_catalog_data($product);
 
+        // 构建事件参数
         $properties = [
             'contents' => [
                 [
-                    'content_id' => (string)$product->get_id(),
-                    'content_type' => 'product',
+                    'content_id' => $catalog_data['sku_id'],
                     'content_name' => $product->get_name()
                 ]
             ],
-            'value' => $product->get_price() * $quantity,
-            'currency' => get_woocommerce_currency(),
-            'quantity' => $quantity,
             
-            // Catalog Fields
+            // 外层必需字段
+            'price' => (float)$product->get_price(),
+            'currency' => get_woocommerce_currency(),
+            'value' => (float)($product->get_price() * $quantity),
+            'quantity' => (int)$quantity,
             'description' => $catalog_data['description'],
             'availability' => $catalog_data['availability'],
-            'image_url' => $catalog_data['image_url'],
             'product_url' => $catalog_data['product_url'],
-            'price' => ($product->get_price() ?: 0) . ' ' . get_woocommerce_currency(),
-            'content_category' => $catalog_data['content_category'],
-            'brand' => $catalog_data['brand'],
-            'condition' => $catalog_data['condition']
+            
+            // 可选字段
+            'content_type' => 'product',
+            'content_category' => $catalog_data['content_category']
         ];
+        
+        // 添加图片 URL（如果存在）
+        if (isset($catalog_data['image_url'])) {
+            $properties['image_url'] = $catalog_data['image_url'];
+        }
 
+        // 发送到 TikTok Events API
         $this->send_server_event('AddToCart', $properties, [], $event_id);
     }
 
@@ -631,27 +754,61 @@ class EverShop_TikTok {
     }
 
     /**
-     * 获取符合 TikTok Catalog 要求的额外产品数据
+     * ═══════════════════════════════════════════════════════════════════
+     * 获取符合 TikTok Catalog 要求的产品数据
+     * ═══════════════════════════════════════════════════════════════════
+     * 📌 参考文档：
+     * https://ads.tiktok.com/help/article/how-to-use-pixel-upload-with-catalogs
      * 
-     * 参见: https://ads.tiktok.com/help/article/how-to-use-pixel-upload-with-catalogs
+     * 📌 字段映射（Catalog Parameter → Pixel Parameter）：
+     * - sku_id         → content_id
+     * - title          → content_name  
+     * - price          → price (number 类型)
+     * - description    → description
+     * - availability   → availability
+     * - image          → image_url
+     * - link           → product_url
+     * 
+     * 📌 返回的数据将用于：
+     * 1. Browser Side Pixel Upload（自动同步到 TikTok Catalog）
+     * 2. Server Side Events API（补充数据）
+     * ═══════════════════════════════════════════════════════════════════
      */
     private function get_tiktok_catalog_data($product) {
         $data = [];
         
-        // Description (Pixel Param: description)
+        // ─────────────────────────────────────────────
+        // SKU ID (必需字段)
+        // Catalog: sku_id | Pixel: content_id
+        // ─────────────────────────────────────────────
+        $sku = $product->get_sku();
+        if (empty($sku)) {
+            // 如果没有 SKU，使用 "product_{ID}" 作为备用
+            $sku = 'product_' . $product->get_id();
+        }
+        $data['sku_id'] = $sku;
+        
+        // ─────────────────────────────────────────────
+        // Description (必需字段)
+        // Catalog: description | Pixel: description
+        // ─────────────────────────────────────────────
         $description = $product->get_short_description();
         if (empty($description)) {
             $description = $product->get_description();
         }
-        // 截取适度长度，去除HTML
+        // 截取适度长度，去除HTML标签
         $data['description'] = mb_substr(wp_strip_all_tags($description), 0, 500); 
         if (empty($data['description'])) {
-            $data['description'] = $product->get_name(); // Fallback
+            // 确保 description 不为空（必需字段）
+            $data['description'] = $product->get_name();
         }
         
-        // Availability (Pixel Param: availability)
-        // TikTok: in stock, available for order, preorder, out of stock, discontinued
-        $stock_status = $product->get_stock_status(); // instock, outofstock, onbackorder
+        // ─────────────────────────────────────────────
+        // Availability (必需字段)
+        // Catalog: availability | Pixel: availability
+        // 支持的值: "in stock", "available for order", "preorder", "out of stock", "discontinued"
+        // ─────────────────────────────────────────────
+        $stock_status = $product->get_stock_status(); // WC: instock, outofstock, onbackorder
         switch ($stock_status) {
             case 'instock':
                 $data['availability'] = 'in stock';
@@ -666,20 +823,36 @@ class EverShop_TikTok {
                 $data['availability'] = 'in stock';
         }
         
-        // Image URL (Pixel Param: image_url)
+        // ─────────────────────────────────────────────
+        // Image Link (必需字段)
+        // Catalog 字段名: image | Pixel 参数名: image_url
+        // 要求：≥500x500 像素，JPG 或 PNG 格式
+        // ⚠️ 注意：存储时使用 Pixel 参数名 image_url，方便直接传递给事件
+        // ─────────────────────────────────────────────
         $image_id = $product->get_image_id();
         if ($image_id) {
-            $data['image_url'] = wp_get_attachment_url($image_id);
-        } else {
-            $data['image_url'] = ''; // 或者是默认图片
+            $image_url = wp_get_attachment_url($image_id);
+            if ($image_url && filter_var($image_url, FILTER_VALIDATE_URL)) {
+                $data['image_url'] = $image_url;  // ✅ 使用 Pixel 参数名
+            }
         }
+        // 注意：如果没有图片，不设置此字段（而不是设置空字符串）
         
-        // Product URL (Pixel Param: product_url)
-        $data['product_url'] = $product->get_permalink();
+        // ─────────────────────────────────────────────
+        // Product URL (必需字段)
+        // Catalog 字段名: link | Pixel 参数名: product_url
+        // ⚠️ 注意：存储时使用 Pixel 参数名 product_url，方便直接传递给事件
+        // ─────────────────────────────────────────────
+        $data['product_url'] = $product->get_permalink();  // ✅ 使用 Pixel 参数名
         
-        // Content Category (Pixel Param: content_category)
+        // ─────────────────────────────────────────────
+        // Content Category (可选字段)
+        // Pixel: content_category
+        // 用途：帮助 TikTok 更好地分类和定位广告
+        // ─────────────────────────────────────────────
         $data['content_category'] = 'Health > Vitamins & Supplements > Sports Nutrition';
         /*
+        // 如果需要动态获取分类，可以使用以下代码：
         $data['content_category'] = '';
         $category_ids = $product->get_category_ids();
         if (!empty($category_ids)) {
@@ -690,9 +863,12 @@ class EverShop_TikTok {
         }
         */
 
-        // Brand (Pixel Param: brand)
+        // ─────────────────────────────────────────────
+        // Brand (可选字段，但推荐提供)
+        // Pixel: brand (虽然表格中未列出，但 TikTok 支持此字段)
+        // ─────────────────────────────────────────────
         $data['brand'] = ''; 
-        // 尝试获取品牌属性 'brand' 或 'pa_brand'
+        // 尝试获取品牌属性
         $brand = $product->get_attribute('brand');
         if (empty($brand)) {
             $brand = $product->get_attribute('pa_brand');
@@ -700,12 +876,15 @@ class EverShop_TikTok {
         if (!empty($brand)) {
             $data['brand'] = $brand;
         } else {
-             // 如果没有品牌属性，使用站点名称作为默认值
+            // 如果没有品牌属性，使用站点名称作为默认值
             $data['brand'] = get_bloginfo('name');
         }
 
-        // Condition (Pixel Param: condition)
-        // WooCommerce 默认没有 condition 字段，通常默认为 'new'
+        // ─────────────────────────────────────────────
+        // Condition (可选字段)
+        // Catalog: condition
+        // 支持的值: "new", "refurbished", "used"
+        // ─────────────────────────────────────────────
         $data['condition'] = 'new';
         
         return $data;
