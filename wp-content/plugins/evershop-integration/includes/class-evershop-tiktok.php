@@ -164,7 +164,15 @@ class EverShop_TikTok {
                             }
                         ],
                         "value": price, 
-                        "currency": "<?php echo get_woocommerce_currency(); ?>"
+                        "currency": "<?php echo get_woocommerce_currency(); ?>",
+                        "description": "<?php echo esc_js($catalog_data['description']); ?>",
+                        "availability": "<?php echo esc_js($catalog_data['availability']); ?>",
+                        "image_url": "<?php echo esc_url($catalog_data['image_url']); ?>",
+                        "product_url": "<?php echo esc_url($catalog_data['product_url']); ?>",
+                        "price": "<?php echo ($product->get_price() ?: 0) . ' ' . get_woocommerce_currency(); ?>",
+                        "content_category": "Health > Vitamins & Supplements > Sports Nutrition",
+                        "brand": "<?php echo esc_js($catalog_data['brand']); ?>",
+                        "condition": "<?php echo esc_js($catalog_data['condition']); ?>"
                     });
                 });
             });
@@ -320,7 +328,7 @@ class EverShop_TikTok {
             'availability' => $catalog_data['availability'],
             'image_url' => $catalog_data['image_url'],
             'product_url' => $catalog_data['product_url'],
-            'price' => (float)$product->get_price(),
+            'price' => ($product->get_price() ?: 0) . ' ' . get_woocommerce_currency(),
             'content_category' => $catalog_data['content_category'],
             'brand' => $catalog_data['brand'],
             'condition' => $catalog_data['condition']
@@ -336,6 +344,9 @@ class EverShop_TikTok {
         $product = wc_get_product($variation_id ? $variation_id : $product_id);
         $event_id = uniqid('atc_'); 
 
+        // 获取 Catalog 必需字段
+        $catalog_data = $this->get_tiktok_catalog_data($product);
+
         $properties = [
             'contents' => [
                 [
@@ -346,7 +357,17 @@ class EverShop_TikTok {
             ],
             'value' => $product->get_price() * $quantity,
             'currency' => get_woocommerce_currency(),
-            'quantity' => $quantity
+            'quantity' => $quantity,
+            
+            // Catalog Fields
+            'description' => $catalog_data['description'],
+            'availability' => $catalog_data['availability'],
+            'image_url' => $catalog_data['image_url'],
+            'product_url' => $catalog_data['product_url'],
+            'price' => ($product->get_price() ?: 0) . ' ' . get_woocommerce_currency(),
+            'content_category' => $catalog_data['content_category'],
+            'brand' => $catalog_data['brand'],
+            'condition' => $catalog_data['condition']
         ];
 
         $this->send_server_event('AddToCart', $properties, [], $event_id);
@@ -657,6 +678,8 @@ class EverShop_TikTok {
         $data['product_url'] = $product->get_permalink();
         
         // Content Category (Pixel Param: content_category)
+        $data['content_category'] = 'Health > Vitamins & Supplements > Sports Nutrition';
+        /*
         $data['content_category'] = '';
         $category_ids = $product->get_category_ids();
         if (!empty($category_ids)) {
@@ -665,6 +688,7 @@ class EverShop_TikTok {
                 $data['content_category'] = $term->name;
             }
         }
+        */
 
         // Brand (Pixel Param: brand)
         $data['brand'] = ''; 
