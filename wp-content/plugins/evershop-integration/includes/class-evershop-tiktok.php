@@ -601,9 +601,9 @@ class EverShop_TikTok {
         // 2. 通过 Pixel Upload 自动将产品信息同步到 TikTok Catalog
         // 3. TikTok 会从此事件中提取产品数据并更新产品目录
         // 
-        // 📌 防重复机制：
-        // - 使用 window.evershop_tiktok_tracked 标记防止同一页面重复触发
-        // - 确保只在页面加载时触发一次
+        // 📌 去重机制：
+        // - 使用 event_id 参数（TikTok 官方推荐）
+        // - 每次页面加载时都会触发事件（符合最佳实践）
         // ═══════════════════════════════════════════════════════════════════
         if (is_product()) {
             $product_id = get_queried_object_id();
@@ -614,61 +614,58 @@ class EverShop_TikTok {
             ?>
             <script>
             // ═══════════════════════════════════════════════════════════════════
-            // 防重复检查机制
+            // Browser Side: ViewContent Event
             // ═══════════════════════════════════════════════════════════════════
-            if (typeof window.evershop_tiktok_tracked === 'undefined') {
-                window.evershop_tiktok_tracked = {};
-            }
+            // 参考文档: https://ads.tiktok.com/help/article/how-to-use-pixel-upload-with-catalogs
+            // 
+            // 📌 注意：ViewContent 事件在每次页面加载时都应触发
+            // TikTok 自身的去重机制（event_id）会处理重复事件
+            // ═══════════════════════════════════════════════════════════════════
             
-            // 生成唯一的页面标识（基于产品 ID）
-            var pageKey = 'viewcontent_<?php echo esc_js($product_id); ?>';
+            console.log('TikTok Catalog Data:', '<?php echo esc_js(json_encode($catalog_data)); ?>');
             
-            // 如果此页面还未被跟踪，则发送事件
-            if (!window.evershop_tiktok_tracked[pageKey]) {
-                window.evershop_tiktok_tracked[pageKey] = true;
+            // 生成唯一的 event_id（用于去重）
+            var eventId = 'vc_<?php echo uniqid(); ?>_' + Date.now();
+            
+            console.log('TikTok: 准备发送 ViewContent 事件, event_id:', eventId);
+            
+            ttq.track('ViewContent', {
+                // ─────────────────────────────────────────────
+                // contents 数组（必需）
+                // 符合官方标准格式
+                // ─────────────────────────────────────────────
+                "contents": [
+                    {
+                        "content_id": "<?php echo esc_js($catalog_data['sku_id']); ?>",
+                        "content_type": "product",  // ✅ 官方必需字段
+                        "content_name": "<?php echo esc_js($product->get_name()); ?>",
+                        "content_category": "<?php echo esc_js($catalog_data['content_category']); ?>",
+                        "price": <?php echo $product->get_price() ?: 0; ?>
+                    }
+                ],
                 
-                // Browser Side: ViewContent Event
-                // 参考文档: https://ads.tiktok.com/help/article/how-to-use-pixel-upload-with-catalogs
+                // ─────────────────────────────────────────────
+                // 外层标准字段（符合官方 API 规范）
+                // ─────────────────────────────────────────────
+                "value": <?php echo $product->get_price() ?: 0; ?>,
+                "currency": "<?php echo get_woocommerce_currency(); ?>",
+                "description": "<?php echo esc_js($catalog_data['description']); ?>",
                 
-                // 生成唯一的 event_id（用于去重）
-                var eventId = 'vc_<?php echo uniqid(); ?>_' + Date.now();
-                
-                ttq.track('ViewContent', {
-                    // ─────────────────────────────────────────────
-                    // contents 数组（必需）
-                    // 符合官方标准格式
-                    // ─────────────────────────────────────────────
-                    "contents": [
-                        {
-                            "content_id": "<?php echo esc_js($catalog_data['sku_id']); ?>",
-                            "content_type": "product",  // ✅ 官方必需字段
-                            "content_name": "<?php echo esc_js($product->get_name()); ?>",
-                            "content_category": "<?php echo esc_js($catalog_data['content_category']); ?>",
-                            "price": <?php echo $product->get_price() ?: 0; ?>
-                        }
-                    ],
-                    
-                    // ─────────────────────────────────────────────
-                    // 外层标准字段（符合官方 API 规范）
-                    // ─────────────────────────────────────────────
-                    "value": <?php echo $product->get_price() ?: 0; ?>,
-                    "currency": "<?php echo get_woocommerce_currency(); ?>",
-                    "description": "<?php echo esc_js($catalog_data['description']); ?>",
-                    
-                    // ─────────────────────────────────────────────
-                    // Catalog Upload 专用字段（用于产品同步）
-                    // 这些字段不在官方标准事件模板中，但用于 Pixel Upload
-                    // ─────────────────────────────────────────────
-                    "availability": "<?php echo esc_js($catalog_data['availability']); ?>",
-                    <?php if (isset($catalog_data['image_url'])): ?>
-                    "image_url": "<?php echo esc_url($catalog_data['image_url']); ?>",
-                    <?php endif; ?>
-                    "product_url": "<?php echo esc_url($catalog_data['product_url']); ?>"
-                }, {
-                    // ✅ 官方推荐：event_id 用于去重
-                    "event_id": eventId
-                });
-            } // 结束防重复检查
+                // ─────────────────────────────────────────────
+                // Catalog Upload 专用字段（用于产品同步）
+                // 这些字段不在官方标准事件模板中，但用于 Pixel Upload
+                // ─────────────────────────────────────────────
+                "availability": "<?php echo esc_js($catalog_data['availability']); ?>",
+                <?php if (isset($catalog_data['image_url'])): ?>
+                "image_url": "<?php echo esc_url($catalog_data['image_url']); ?>",
+                <?php endif; ?>
+                "product_url": "<?php echo esc_url($catalog_data['product_url']); ?>"
+            }, {
+                // ✅ 官方推荐：event_id 用于去重
+                "event_id": eventId
+            });
+            
+            console.log('TikTok: ViewContent 事件已发送, event_id:', eventId);
             
             // ═══════════════════════════════════════════════════════════════════
             // AddToCart Event Listener (Browser Side - 加购事件监听器)
@@ -746,7 +743,6 @@ class EverShop_TikTok {
                         "event_id": eventId
                     });
                 });
-            });
             });
             </script>
             <?php

@@ -157,7 +157,6 @@
                 e.stopPropagation(); // 阻止事件冒泡，防止触发 FlexSlider
                 
                 var index = $(this).index();
-                console.log('🖱️ 缩略图被点击/触摸，索引:', index);
                 
                 // 切换到对应索引的图片
                 self.switchToImage(index);
@@ -171,7 +170,6 @@
             // 🔧 监控样式变化，防止 FlexSlider 重新添加动画
             this.watchGalleryStyles();
             
-            console.log('✅ 图片库事件绑定完成');
         },
 
         /**
@@ -215,11 +213,9 @@
             if (Math.abs(xDiff) > Math.abs(yDiff) && Math.abs(xDiff) > minSwipeDistance) {
                 if (xDiff > 0) {
                     // 向左滑动 -> 下一张
-                    console.log('👈 向左滑动 -> 下一张');
                     this.nextImage();
                 } else {
                     // 向右滑动 -> 上一张
-                    console.log('👉 向右滑动 -> 上一张');
                     this.prevImage();
                 }
             }
@@ -266,7 +262,6 @@
                             
                             // 检查是否有不需要的 transform 或 transition
                             if (style.indexOf('translate') !== -1 && style.indexOf('translateX(0)') === -1) {
-                                console.log('🔧 检测到样式变化，重新重置...');
                                 self.resetGalleryStyles();
                             }
                         }
@@ -281,7 +276,6 @@
                     observer.observe($viewport[0], { attributes: true, attributeFilter: ['style'] });
                 }
                 
-                console.log('✅ 样式监控已启动');
             }
         },
         
@@ -291,11 +285,9 @@
          */
         switchToImage: function(index) {
             if (index < 0 || index >= this.currentImages.length) {
-                console.warn('⚠️ 图片索引超出范围:', index);
                 return;
             }
             
-            console.log('🔄 切换到图片索引:', index);
             
             // 更新当前索引
             this.currentImageIndex = index;
@@ -321,7 +313,6 @@
                 return;
             }
             
-            console.log('🎯 变体切换:', variationData);
             
             // 1. 更新选中状态
             this.updateSelectedState($button);
@@ -353,7 +344,6 @@
             var variationId = $button.data('variation-id');
             var variationData = $button.data('variation'); // 获取完整的变体数据
             
-            console.log('🔄 同步到标准表单:', attributeName, '=', value, 'ID:', variationId);
             
             // 1. 更新下拉框值
             // 注意：WooCommerce 的 select name 通常是 attribute_pa_flavor
@@ -366,7 +356,6 @@
             var $variationInput = $('input.variation_id');
             if ($variationInput.length && variationId) {
                 $variationInput.val(variationId).trigger('change');
-                console.log('✅ variation_id 已更新为:', variationId);
             }
             
             // 3. 触发 found_variation 事件（重要！用于启用 Add to Cart 按钮）
@@ -375,7 +364,6 @@
                 // 延迟触发，确保所有更新完成
                 setTimeout(function() {
                     $form.trigger('found_variation', [variationData]);
-                    console.log('✅ found_variation 事件已触发');
                 }, 50);
             }
         },
@@ -386,12 +374,10 @@
         updateImageDataSource: function(variation) {
             // 优先使用变体图片库
             if (variation.variation_gallery_images && variation.variation_gallery_images.length > 0) {
-                console.log('📸 使用变体图片库:', variation.variation_gallery_images.length, '张图片');
                 this.currentImages = variation.variation_gallery_images;
             } 
             // 否则使用变体的特色图片
             else if (variation.image && variation.image.src) {
-                console.log('📸 使用变体特色图片');
                 this.currentImages = [{
                     src: variation.image.src,
                     full_src: variation.image.full_src || variation.image.src,
@@ -403,24 +389,20 @@
             }
             // 如果没有变体图片，恢复原始图片
             else {
-                console.log('📸 恢复原始图片');
                 this.currentImages = this.originalImages.slice();
             }
             
             // 重置当前索引
             this.currentImageIndex = 0;
             
-            console.log('✅ 当前图片数据源更新完成，共', this.currentImages.length, '张图片');
         },
         
         /**
          * 渲染整个图片库（主图 + 缩略图）
          */
         renderGallery: function() {
-            console.log('🎨 重新渲染图片库...');
             
             if (this.currentImages.length === 0) {
-                console.warn('⚠️ 没有图片可显示');
                 return;
             }
             
@@ -430,19 +412,16 @@
             // 2. 渲染缩略图列表
             this.renderThumbnails();
             
-            console.log('✅ 图片库渲染完成');
         },
         
         /**
          * 渲染主图
          */
         renderMainImage: function(image) {
-            console.log('🖼️ 渲染主图:', image.src ? image.src.substring(image.src.lastIndexOf('/') + 1) : '');
             
             var self = this;
             var $wrapper = $('.woocommerce-product-gallery__wrapper');
             if (!$wrapper.length) {
-                console.error('❌ 找不到主图容器');
                 return;
             }
             
@@ -452,7 +431,6 @@
             var $mainImage = $wrapper.find('.woocommerce-product-gallery__image').first();
             
             if (!$mainImage.length) {
-                console.warn('⚠️ 创建新的主图容器');
                 $mainImage = $('<div class="woocommerce-product-gallery__image"></div>');
                 $wrapper.prepend($mainImage);
             }
@@ -487,7 +465,6 @@
             
             // 监听图片加载
             $mainImage.find('img').on('load', function() {
-                console.log('✅ 主图加载成功');
                 
                 // 🎯 图片加载后，动态调整容器高度
                 self.adjustGalleryHeight($(this));
@@ -538,7 +515,6 @@
             var imgNaturalHeight = $img[0].naturalHeight;
             var actualHeight = imgHeight > 0 ? imgHeight : imgNaturalHeight;
             
-            console.log('📐 调整容器高度:', actualHeight + 'px');
             
             // 设置 flex-viewport 的高度
             var $viewport = $('.flex-viewport');
@@ -572,7 +548,6 @@
          * 渲染缩略图列表
          */
         renderThumbnails: function() {
-            console.log('🎞️ 渲染缩略图列表...');
             
             var $thumbsContainer = $('.flex-control-nav.flex-control-thumbs');
             
@@ -607,7 +582,6 @@
                 $thumbsContainer.append($thumb);
             });
             
-            console.log('✅ 已渲染', this.currentImages.length, '个缩略图');
         },
         
         /**
@@ -634,21 +608,17 @@
          */
         selectDefaultVariation: function() {
             var self = this;
-            console.log('🎯 检查默认变体...');
             
             var $selectedButtons = $('.variant-option-item.selected .variant-option-button');
             
             if ($selectedButtons.length === 0) {
-                console.log('⚠️ 没有默认选中的变体');
                 return;
             }
             
-            console.log('✅ 找到', $selectedButtons.length, '个默认选中的属性');
                 
             var $firstSelectedButton = $selectedButtons.first();
             
             if ($firstSelectedButton.length > 0) {
-                console.log('🔄 自动触发默认变体切换...');
                 setTimeout(function() {
                     self.handleVariationChange($firstSelectedButton);
                 }, 200);
