@@ -16,7 +16,7 @@ class EverShop_TikTok {
     private static $api_endpoint = 'https://business-api.tiktok.com/open_api/v1.3/event/track/';
     private static $test_event_code;
 
-    private static $test_mode = 'test';
+    private static $test_mode = 'production';
 
     public static function init() {
         $instance = new self();
@@ -28,7 +28,7 @@ class EverShop_TikTok {
         self::$pixel_id = get_option('evershop_tiktok_pixel_id');
         self::$access_token = get_option('evershop_tiktok_access_token');
         self::$test_event_code = get_option('evershop_tiktok_test_event_code');
-        self::$test_mode = get_option('evershop_tiktok_test_mode', 'test');
+        self::$test_mode = get_option('evershop_tiktok_test_mode', 'production');
         
         // 支持自定义 API Endpoint (为 Events API Gateway 预留)
         $custom_endpoint = get_option('evershop_tiktok_api_endpoint');
@@ -1273,9 +1273,15 @@ class EverShop_TikTok {
         $info = [];
         if (is_user_logged_in()) {
             $current_user = wp_get_current_user();
-            $info['email'] = $current_user->user_email;
+            
+            // 只在有效 email 时添加
+            if (!empty($current_user->user_email) && is_email($current_user->user_email)) {
+                $info['email'] = $current_user->user_email;
+            }
+            
             $info['external_id'] = (string)$current_user->ID;
         }
+        
         return $info;
     }
 

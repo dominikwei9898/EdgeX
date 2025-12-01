@@ -113,6 +113,42 @@ function evershop_integration_init() {
 }
 
 /**
+ * 注册 TikTok 设置
+ */
+add_action('admin_init', 'evershop_register_tiktok_settings');
+function evershop_register_tiktok_settings() {
+    register_setting('evershop_tiktok_settings', 'evershop_tiktok_pixel_id', [
+        'type' => 'string',
+        'sanitize_callback' => 'sanitize_text_field',
+        'default' => ''
+    ]);
+    
+    register_setting('evershop_tiktok_settings', 'evershop_tiktok_access_token', [
+        'type' => 'string',
+        'sanitize_callback' => 'sanitize_text_field',
+        'default' => ''
+    ]);
+    
+    register_setting('evershop_tiktok_settings', 'evershop_tiktok_test_mode', [
+        'type' => 'string',
+        'sanitize_callback' => 'sanitize_text_field',
+        'default' => 'test'
+    ]);
+    
+    register_setting('evershop_tiktok_settings', 'evershop_tiktok_test_event_code', [
+        'type' => 'string',
+        'sanitize_callback' => 'sanitize_text_field',
+        'default' => ''
+    ]);
+    
+    register_setting('evershop_tiktok_settings', 'evershop_tiktok_api_endpoint', [
+        'type' => 'string',
+        'sanitize_callback' => 'esc_url_raw',
+        'default' => ''
+    ]);
+}
+
+/**
  * 添加管理菜单
  */
 add_action('admin_menu', 'evershop_integration_admin_menu');
