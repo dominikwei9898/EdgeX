@@ -622,12 +622,17 @@ class EverShop_TikTok {
             // TikTok 自身的去重机制（event_id）会处理重复事件
             // ═══════════════════════════════════════════════════════════════════
             
-            console.log('TikTok Catalog Data:', '<?php echo esc_js(json_encode($catalog_data)); ?>');
             
-            // 生成唯一的 event_id（用于去重）
-            var eventId = 'vc_<?php echo uniqid(); ?>_' + Date.now();
+            // 使用服务器端生成的 event_id（用于与服务器端事件去重）
+            <?php
+            global $tiktok_viewcontent_event_id;
+            $client_event_id = $tiktok_viewcontent_event_id ? $tiktok_viewcontent_event_id : ('vc_' . uniqid() . '_' . time());
+            $has_server_event = !empty($tiktok_viewcontent_event_id);
+            ?>
+            var eventId = '<?php echo esc_js($client_event_id); ?>';
             
-            console.log('TikTok: 准备发送 ViewContent 事件, event_id:', eventId);
+            <?php if ($has_server_event): ?>
+            <?php endif; ?>
             
             ttq.track('ViewContent', {
                 // ─────────────────────────────────────────────
@@ -665,7 +670,6 @@ class EverShop_TikTok {
                 "event_id": eventId
             });
             
-            console.log('TikTok: ViewContent 事件已发送, event_id:', eventId);
             
             // ═══════════════════════════════════════════════════════════════════
             // AddToCart Event Listener (Browser Side - 加购事件监听器)
@@ -904,21 +908,18 @@ class EverShop_TikTok {
      * ═══════════════════════════════════════════════════════════════════
      * 📌 触发时机：用户访问产品页面时
      * 📌 作用：
-     * 1. 补充 Browser Side 的 ViewContent 事件数据
-     * 2. 通过 Event ID 与 Browser Side 事件去重
-     * 3. 提供更可靠的浏览数据（不受广告拦截器影响）
-     * 📌 注意：此方法已被禁用，避免与浏览器端事件重复
-     * - Browser Pixel 已经在产品页发送 ViewContent
-     * - 服务器端重复发送会导致数据重复统计
-     * - 如需启用，必须确保与浏览器端使用相同的 event_id 去重
+     * 1. 服务器端先发送 ViewContent 事件（更可靠，不受广告拦截器影响）
+     * 2. 生成唯一的 event_id 并传递给浏览器端
+     * 3. 浏览器端使用相同的 event_id 发送事件（TikTok 自动去重）
+     * 4. 结果：TikTok 只记录一次事件，但数据更可靠
+     * 
+     * 📌 去重机制：
+     * - 服务器端和浏览器端使用相同的 event_id
+     * - TikTok Events API 会自动识别并去重
+     * - 优先使用服务器端数据（更可靠）
      * ═══════════════════════════════════════════════════════════════════
      */
     public function track_server_view_content() {
-        // ⚠️ 已禁用服务器端 ViewContent，避免与浏览器端重复
-        // 原因：TikTok Pixel Helper 显示同一页面有多个 ViewContent 事件
-        // 解决方案：只使用浏览器端 Pixel Upload 来跟踪 ViewContent
-        return;
-        
         if (!is_product()) return;
         
         $product_id = get_queried_object_id();
@@ -926,8 +927,9 @@ class EverShop_TikTok {
         
         if (!$product) return;
 
-        // 生成唯一的 Event ID（用于与 Browser Side 事件去重）
-        $event_id = uniqid('vc_');
+        // ✅ 生成唯一的 Event ID（服务器端和浏览器端共享）
+        // 服务器端先发送事件，浏览器端使用相同的 event_id 实现去重
+        $event_id = 'vc_' . uniqid() . '_' . time();
 
         // 获取 Catalog 数据
         $catalog_data = $this->get_tiktok_catalog_data($product);
@@ -962,6 +964,10 @@ class EverShop_TikTok {
 
         // 发送到 TikTok Events API
         $this->send_server_event('ViewContent', $properties, [], $event_id);
+        
+        // 将 event_id 存储到全局变量，供浏览器端使用（实现去重）
+        global $tiktok_viewcontent_event_id;
+        $tiktok_viewcontent_event_id = $event_id;
     }
 
     /**
